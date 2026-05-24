@@ -1,44 +1,187 @@
 ---
-title: "Assignement - Bayesian Statistics"
+title: "Bayesian Analysis of Syntopy in Sister Species Pairs"
 author: "Matěj Tvarůžka"
-date: "2026-02-16"
+date: "`r Sys.Date()`"
 format: html
+editor: visual
 ---
 
-# Coexistence (syntopy) of sister species on a local scale
+# Introduction
 
-**Question: How can two closely sister species of birds co-occurr at the same site?**
+Following the framework of Remeš & Harmáčková (2023), this assignment simulates and analyzes local co-occurrence (syntopy) in bird sister species pairs. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors.
+
+We can imagine the range overlap being the jar, from which we randomly draw co-occurence states. There are four possible outcomes of that drowing: 1) both species are present, 2) species A is present, 3) species B is present or 4) both species are missing at the site. To measure the affinity of species co-occurence we use log odds ratio as it makes the odds ratio centered around zero makes the final scale linear.
+
+If we want to model this problem using the Bayesian methods, than the most accurate probability distribution for this process is the Fisher's non-central hypergeometric distribution, where *N* stands for the population size (number of sites within the sympatric zone), *K* is the number of co-occurrence states (*K* = 4), *n* is the number of draws and *k* stands for number of co-occurrences. This distribution is accurate, because the sampling is carried out without replacement which matches the true nature of the problem as we have a limited number of pairs, however I will compare the result with the binomial distribution as well.
 
 ::: callout-note
 ## Steps
 
-1.  Description of data and problem
-
-2.  Basic visualization
-
-3.  Model evaluation
+1.  Generate data for simulation for N=100 and N=500 for both Fisher's hypergeometric and binomial distribution.
+2.  Model co-occurrence using Fisher's hypergeometric distribution
+3.  Model co-occurrence using approximation with binomial distribution.
+4.  Compare both models.
 :::
 
-## 1. Data and problem
+# Generative Process
 
-To estimate the importance of preditors for syntopy, we take a look at the probabilities of species co-occurence at the same sites. We need to select only the sites within the range overlap (sympatry) of these two species (otherwise the results will be biased -see Remeš & Harmáčková 2023).
+To satisfy the assignment's complexity requirements, I define **5 true parameters** that dictate the data-generating process:
 
-We can imagine the range overlap being the bag, from which we randomly draw co-occurence states. There are four possible outcomes of that drowing: 1) both species are present, 2) species A is present, 3) species B is present or 4) both species are missing at the site. The most accurate probability distribution for this process is the Fisher's non-central hypergeometric distribution, where *N* stands for the population size (number of sites within the sympatric range), *K* is the number of co-occurrence states (*K* = 4), *n* is the number of draws and *k* stands for number of co-occurrences.
+- $\beta_{0} = 0.5$ (Baseline log-odds of co-occurrence; slight facilitation)
 
-$$
-\begin{aligned}
+- $\beta_{res.div} = -0.8$ (Resource use divergence: greater divergence decreases syntopy)
+
+- $\beta_{hab.pref} = 0.5$ (Similar microhabitat and environmental preference increases syntopy)
+
+- $\beta_{sympatry} = 1.2$ (Spatial overlap: regional overlap strongly increases syntopy)
+
+- $\beta_{prod} = 0.3$ (Environmental productivity: richer environments support co-occurrence)
+
+## Fishers' Hypergeometric Distribution
+
+### Mathematical Formulation
+
+For each site $i$ out of $N = 100$, the co-occurrence affinity ($α$) is governed by the logarithmic function:
+
+$$\text{log}(ω_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{sympatry} \cdot X_{3,i} + \beta_{prod} \cdot X_{4,i}$$
+
+The observed co-occurrence $k_i$ is modeled with **Fisher's Hypergeometric distribution** representing local survey plots within that site:
+
+$$k_i \sim \text{FisherHypergeometric}(m_{1i},m_{2i}, N_i, ω_i)$$
+
+where:
+
+- $k_i$ = number of sites where both species co-occur
+
+- $m_{1i}$ = total number of sites where species A is present for pair $i$
+
+- $m_{2i}$ = total number of sites where species B is present for pair $i$
+
+- $N_i$ = total number of sites sampled within the sympatric range of pair $i$
+
+- $ω_i$ = the conditional co-occurrence odds ratio for pair $i$
+
+### Data Generation
+
+```{r}
+library(BiasedUrn)
+```
+
+```{r}
+#| label: Data generation for 100 pairs FHD
+set.seed(12)
+num_pairs <- 100
+N <- rpois(num_pairs, lambda = rgamma(n = num_pairs, shape = 5, rate = 1/10)) + 5 # Added +5 to ensure no pairs have 0 or too few total routes
+m1 <- rbinom(num_pairs, size = N, prob = 0.5)
+m2 <- rbinom(num_pairs, size = N, prob = 0.5)
+hist(N)
+summary(N)
+```
+
+```{r}
+set.seed(12)
+X_res_div   <- rnorm(num_pairs, mean = 0, sd = 1) # X1
+X_hab_pref  <- rnorm(num_pairs, mean = 0, sd = 1) # X2
+
+# Sympatry
+raw_beta <- rbeta(num_pairs, shape1 = 2, shape2 = 1)
+target_min <- 5
+target_max <- 100
+sympatry <- target_min + (raw_beta - min(raw_beta)) * (target_max - target_min) / (max(raw_beta) - min(raw_beta))
+X_sympatry <- (sympatry - mean(sympatry)) / sd(sympatry) # X3
+
+# Check the distribution structure
+hist(sympatry, breaks = 12, main="Simulated Sympatry (%)", xlab="Percentage Overlap", col="darkseagreen3")
+hist(X_sympatry, breaks = 12, main="zSympatry (Standardized)", xlab="Z-score", col="steelblue")
+summary(sympatry)
+
+X_prod      <- rnorm(num_pairs, mean = 0, sd = 1) # X4
+```
+
+```{r}
+beta_0        <- 0.5
+beta_res_div  <- -0.8
+beta_hab_pref <- 0.5
+beta_sympatry <- 1.2j
+beta_prod     <- 0.3
+```
+
+```{r}
+log_omega <- beta_0 + 
+             beta_res_div  * X_res_div + 
+             beta_hab_pref * X_hab_pref + 
+             beta_sympatry * X_sympatry + 
+             beta_prod     * X_prod
+omega <- exp(log_omega)
+```
+
+```{r}
+# Calculate the linear predictor (alpha) for each pair
+k <- integer(num_pairs)
+for(i in 1:num_pairs) {
+  # Simple safety boundary: if a species isn't present at all, co-occurrence is 0
+  if(m1[i] == 0 || m2[i] == 0) {
+    k[i] <- 0
+  } else {
+    # rFNCHypergeo(n_samples, m1, m2, total_draws, odds)
+    # Note: BiasedUrn expects: m1 = white balls, m2 = black balls, n = balls drawn
+    k[i] <- rFNCHypergeo(1, m1[i], N[i] - m1[i], m2[i], omega[i])
+  }
+}
+```
+
+
+```{r}
+sim_data_100 <- data.frame(
+  N = N, m1 = m1, m2 = m2, k = k,
+  res_div = X_res_div, hab_pref = X_hab_pref, 
+  sympatry = X_sympatry, prod = X_prod
+)
+
+head(sim_data_100)
+```
+
+```{r}
+sim_data_1000 <- data.frame(
+  N = N, m1 = m1, m2 = m2, k = k,
+  res_div = X_res_div, hab_pref = X_hab_pref, 
+  sympatry = X_sympatry, prod = X_prod)
+head(sim_data_1000)
+
+```
+
+
+------------------------------------------------------------------------
+
+## Binomial Distribution
+
+### Mathematical Formulation
+
+For each site $i$ out of $N = 100$, the probability of co-occurrence $p_i$ is governed by the logit link function:
+
+$$\text{logit}(p_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{sympatry} \cdot X_{3,i} + \beta_{prod} \cdot X_{4,i}$$
+
+The observed co-occurrence $Y_i$ is modeled as a Binomial process representing local survey plots within that site:
+
+$$Y_i \sim \text{Binomial}(M_i, p_i)$$
+
+where $M_i$ is the number of sampling efforts at site $i$.
+
+### Data Generation
+
+------------------------------------------------------------------------
+
+# Modeling
+
+```{r}
+#| include: false
+library(rethinking)
+```
+
+$$\begin{aligned}
 K_{ij} &\sim \text{fnchypg}(\vec{m}_i, N - \vec{m}_i, \vec{m}_j, e^\alpha) \\
 \alpha &= \beta_0 + \lambda_i + \lambda_j + \beta X \\
 \beta_k &\sim \text{N}(0, 1) \\
 \beta_0 &\sim \text{N}(0, 4) \\
 \lambda_i &\sim \text{N}(0, 1)
-\end{aligned}
-$$\
-
-```{r}
-library(rethinking)
-```
-
-```{r}
-
-```
+\end{aligned}$$\
