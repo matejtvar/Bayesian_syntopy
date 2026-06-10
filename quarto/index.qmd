@@ -6,35 +6,39 @@ format: html
 editor: visual
 ---
 
+ADD comments to your code!!! Create some functions to make it easy for changing values! Can I use matplot() for comparing how the co-occurrence depends on N sites? use dim()
+
+use system.time()
+
 # Introduction
 
-Following the framework of Remeš & Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master's thesis, where I model syntopy at two spatial scales using BBS data for passerines and range maps from eBird status & trends.
+Following the framework of Remeš & Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master's thesis, where I model syntopy at two spatial scales using BBS (Breeding Bird Survey) data for passerines and range maps from eBird Status & Trends.
 
-To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis. We can imagine the range overlap being the jar, from which we randomly draw sampled sites. There are four possible outcomes of that draw: 1) both species are present, 2) species A is present, 3) species B is present, or 4) both species are missing at the site. To measure the degree of species co-occurrence, we use the log-odds ratio because it centres the odds ratio around zero, making the scale linear.
+To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw: 1) both species are present, 2) species A is present, 3) species B is present, or 4) both species are missing at the site. To measure the degree of species co-occurrence, we use the log-odds ratio because it centers the odds ratio around zero, making the scale linear.
 
-If we want to model this problem using Bayesian methods, we can follow the approach in Newbury (2024), but we will not include random effects in the model and will use only a simple Bayesian GLM. The most accurate probability distribution for our problem is **Fisher's non-central hypergeometric distribution**, where *N* denotes the population size (number of sites within the sympatric zone), *K* is the number of co-occurrence states (*K* = 4), *n* is the number of draws, and *k* is the number of co-occurrences. This distribution is accurate because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
+If we want to model this problem using Bayesian methods, we can follow the approach in Newbury (2024), but we will not include random effects in the model and will use only a simple Bayesian linear regression. The most accurate probability distribution for our problem is **Fisher's non-central hypergeometric distribution**, where *N* denotes the population size (number of sites within the sympatric zone), *K* is the number of co-occurrence states (*K* = 4), *n* is the number of draws, and *k* is the number of co-occurrences. This distribution is accurate because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
 
 ::: callout-note
 ## Goals
 
-1.  Generate dream data for 100 pairs using Fisher's hypergeometric distribution.
-2.  Visualize the generated data.
-3.  Fit the model using `ulam` function and compare the estimates using different N.
+1.  Generate dream data for 100 pairs using Fisher's hypergeometric distribution for both scales.
+2.  Visualize generated data.
+3.  Fit model using `ulam` function and compare estimates using different N for both scales.
 :::
 
-# Generative Process
+# Data Simulation
 
 To satisfy the assignment's complexity requirements, I define **5 true parameters** that dictate the data-generating process:
 
 - $\beta_{0} = 0.5$ (Baseline log-odds of co-occurrence; slight facilitation)
 
-- $\beta_{res.div} = -0.8$ (Resource use divergence: greater divergence decreases syntopy)
+- $\beta_{res.div} = 0.8$ (Resource use divergence: greater divergence increases syntopy)
 
-- $\beta_{hab.pref} = 0.6$ (Similar microhabitat and environmental preference increases syntopy)
-
-- $\beta_{sympatry} = 1.2$ (Spatial overlap: regional overlap strongly increases syntopy)
+- $\beta_{hab.pref} = -0.6$ (Difference in micro-habitat and environmental preference decreases syntopy)
 
 - $\beta_{prod} = 0.3$ (Environmental productivity (e.g., NDVI): richer environments support co-occurrence)
+
+- $\beta_{sympatry} = 1.2$ (Spatial overlap: regional overlap strongly increases syntopy)
 
 ## Fishers' Hypergeometric Distribution
 
@@ -42,7 +46,7 @@ To satisfy the assignment's complexity requirements, I define **5 true parameter
 
 For each site $i$ out of $N$, the co-occurrence affinity ($α$) is the log-odds ratio of given parameters:
 
-$$\text{log}(ω_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{sympatry} \cdot X_{3,i} + \beta_{prod} \cdot X_{4,i}$$
+$$\text{log}(ω_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}$$
 
 The observed co-occurrence $k_i$ is modeled with **Fisher's Hypergeometric distribution** representing local survey plots within that site:
 
@@ -60,68 +64,104 @@ where:
 
 - $ω_i$ = the conditional co-occurrence odds ratio for pair $i$
 
-### Data Generation
+## Data Generation
 
-For the Fisher's hypergeometric distribution we can use the library `BiasedUrn`
+I want to simulate data resembling the study design of BBS (\~40km long routes, each having 50 stops). Therefore I need to create two data sets:
+
+1\) route scale (looking at syntopy across transects within the range overlap)
+
+2\) stop scale (looking at syntopy within transects)
+
+For the Fisher's hypergeometric distribution we can use the library `BiasedUrn`, for the modeling we will use `rethinking` and `rstan`.
 
 ```{r}
-#| include: false
 library(BiasedUrn)
 library(rethinking)
+library(rstan)
+set.seed(1)
 ```
 
-For the number of sites I choose a \*\*gamma-Poisson \*distribution\*\*, because it is an integer and I know that there is a long tail on the right site of the distribution.
+### Route Scale
+
+For the number of sites I choose a \*\*negative binomial \*distribution\*\*, because it is an integer and I know that there is a long tail on the right site of the distribution.
 
 ```{r}
-#| label: Data generation for 100 pairs FHD
-set.seed(12)
-num_pairs <- 30
-N <- rpois(num_pairs, lambda = rgamma(n = num_pairs, shape = 2, rate = 1/100)) # gamma-Poisson distribution, N of sites
-m1 <- rbinom(num_pairs, size = N, prob = 0.5) # sites with species A
-m2 <- rbinom(num_pairs, size = N, prob = 0.5) # sites with species B
-hist(N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="red")
+#| label: Route Scale Data Simulation
+num_pairs <- 100
+route_occupancy <- function(num_pairs){
+  # simulates the occupancy of species across N routes
+  
+  # N of routes
+  N <-  rnbinom(n = num_pairs, mu = num_pairs, size = 2)
+  # Probability distribution for species occupancy
+  prob_m1 <- rbeta(num_pairs, shape1 = 1, shape2 = 2)
+  prob_m2 <- rbeta(num_pairs, shape1 = 1, shape2 = 2)
+  # Species occupancy
+  m1 <- rbinom(num_pairs, size = N, prob = prob_m1)
+  m2 <- rbinom(num_pairs, size = N, prob = prob_m2)
+  list(N=N, m1=m1, m2=m2)
+}
+route_oc <- route_occupancy(num_pairs = num_pairs)
+
+hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="grey")
 ```
 
-Some species pairs have very large number of sampled sites, while some of them have just a few sampled sites within the sympatric range.
+Some species pairs have very large number of sampled sites, while some of them have just a few sampled sites within the sympatric range. We can check the parameters of the distribution:
 
 ```{r}
-summary(N)
+summary(route_oc$N)
 ```
+
+We can also check the occupancy distribution of the first species set in the pairs:
+
+```{r}
+hist(route_oc$m1, breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="red")
+```
+
+This plot nicely resembles species abundance distribution, so if we take a logarithm of it it should be close to normal distribution.
+
+```{r}
+hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="red")
+```
+
+It is exactly like that!
 
 Let's continue with the generation of parameter values. First I will generate three already standardized variables using **normal distribution**.
 
 ```{r}
-set.seed(12)
+#| label: Parameters
 X_res_div   <- rnorm(num_pairs, mean = 0, sd = 1) # X1
 X_hab_pref  <- rnorm(num_pairs, mean = 0, sd = 1) # X2
-X_prod      <- rnorm(num_pairs, mean = 0, sd = 1) # X4
+X_prod      <- rnorm(num_pairs, mean = 0, sd = 1) # X3
 hist(X_res_div, breaks = 12, main="Resource Use Divergence", xlab="Degree of divergence", col="orange")
 ```
 
-For the parameter X3 (% of range overlap) I need to generate specific distribution as x \> 5 (minimum degree for sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit I have to use **beta distribution**.
+For the degree of sympatry (% of range overlap) I need to generate specific distribution as x \> 5 (minimum degree for sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit I have to use **beta distribution**.
 
 ```{r}
-set.seed(12)
-raw_beta <- rbeta(num_pairs, shape1 = 2, shape2 = 1)
-target_min <- 5 # sympatry treshold is 5 %
-target_max <- 100 # full overlap
-sympatry <- target_min + (raw_beta - min(raw_beta)) * (target_max - target_min) / (max(raw_beta) - min(raw_beta))
+#| label: Parameter X4
+raw_beta <- rbeta(num_pairs, shape1 = 2, shape2 =3)
+sym_min <- 5 # sympatry threshold is 5 %
+symp_max <- 100 # full overlap
+sympatry <- sym_min + (raw_beta - min(raw_beta)) * (symp_max - sym_min) / (max(raw_beta) - min(raw_beta))
 hist(sympatry, breaks = 12, main="Degree of Sympatry", xlab="Range overlap (%)", col="darkseagreen3")
 ```
 
-We can see that most of the pair have a high degree of sympatry and few pair have very low values. Now we have to standardize it prior to modeling.
+We can see that most of the pairs have a high degree of sympatry and few pairs have very low values. Now we have to standardize it prior to modeling.
 
 ```{r}
+#| label: Parameter X4
 X_sympatry <- (sympatry - mean(sympatry)) / sd(sympatry) # X3
 hist(X_sympatry, breaks = 12, main="zSympatry (Standardized)", xlab="Z-score", col="steelblue")
 ```
 
-Now we set the "true" values for the parameters in our ideal universe.
+Now we set the "true" values for the parameters in our made-up universe.
 
 ```{r}
+#| label: True Parameters
 beta_0        <- 0.5
-beta_res_div  <- -0.8
-beta_hab_pref <- 0.6
+beta_res_div  <- 0.8
+beta_hab_pref <- -0.6
 beta_sympatry <- 1.2
 beta_prod     <- 0.3
 ```
@@ -129,6 +169,7 @@ beta_prod     <- 0.3
 Next step is the calculation of linear combination of parameters and we exponentiate the log-odds to get simple odds ratio.
 
 ```{r}
+#| label: Odds Ratio
 log_omega <- beta_0 + 
              beta_res_div  * X_res_div + 
              beta_hab_pref * X_hab_pref + 
@@ -140,7 +181,9 @@ omega <- exp(log_omega)
 With this setted up, we calculate the linear predictor for each pair using `BiasedUrn` library.
 
 ```{r}
-set.seed(12)
+#| label: Simulation of co-occurrence
+m1 <- route_oc$m1
+m2 <- route_oc$m2
 k <- integer(num_pairs)
 for(i in 1:num_pairs) {
   # Simple safety boundary: if a species isn't present at all, co-occurrence is 0
@@ -148,108 +191,111 @@ for(i in 1:num_pairs) {
     k[i] <- 0
   } else {
     # rFNCHypergeo(n_samples, m1, m2, total_draws, odds)
-    # Note: BiasedUrn expects: m1 = white balls, m2 = black balls, n = balls drawn
-    k[i] <- rFNCHypergeo(1, m1[i], N[i] - m1[i], m2[i], omega[i])
+    k[i] <- rFNCHypergeo(1, route_oc$m1[i], route_oc$N[i] - route_oc$m1[i], route_oc$m2[i], omega[i])
   }
 }
 ```
-
+Let's pack it up into data.frame and take a look!
 ```{r}
-sim_data <- data.frame(
-  N = N, m1 = m1, m2 = m2, k = k,
-  res_div = X_res_div, hab_pref = X_hab_pref, 
-  sympatry = X_sympatry, prod = X_prod
+#| label: Route Scale Data Final
+route_data <- data.frame(
+  N = route_oc$N, m1 = m1, m2 = m2, k = k,
+  res_div = X_res_div, hab_pref = X_hab_pref,
+  prod = X_prod, 
+  sympatry = X_sympatry
 )
-
-head(sim_data)
+head(route_data)
 ```
-
+The data.frame looks good and we should now explore the data before proceeding into next stage.
+We need to exclude all pairs with zero co-occurrence before generating point scale data, because for this we need only the routes where both species are present (there is no reason to analyse routes with zero co-occurrence, it will highly bias the results).
+```{r}
+#| label: Route Scale Data Exploration & Wrangling
+nrow(route_data[route_data$k == 0,]) # There is 17 pairs with k=0
+route_data[route_data$m1 == 0 & route_data$m2 == 0,] # There is no route with zero occupancy of both species
+route_data[abs(route_data$m1 - route_data$m2) >100,] # There is 5 pairs with a very high difference in occupancy between species
+```
+Higher abundance among sister pairs (e.g. 80 occupied routes from 100, together at 64) can lead to the situation when both species in the pair tend to co-occur more likely simply because they are present everywhere - therefore their co-occurrence affinity will be incomparable with the species which co-occur despite being rare in general (e.g. 5 routes from 100, together at 4). This problem of prevalence can happen if we measure co-occurrence with widely used indicies of similarity (e.g., Jaccard, Simpson).
 ------------------------------------------------------------------------
 
-# Data Visualization
+### Point Scale
+
 ```{r}
-visualize_simulation <- function(df) {
-  # Get the number of pairs dynamically from the data frame
-  n_pairs <- nrow(df)
+#| label: Generate Point-Scale Data Conditioned on Transect Abundance
+
+# 1. Identify which species pairs have at least one co-occurring transect
+valid_pairs <- which(route_data$k >= 1)
+
+transect_id       <- c()
+parent_pair_id    <- c()
+points_total      <- c()
+points_m1         <- c()
+points_m2         <- c()
+points_cooccur_k  <- c()
+
+# 2. Loop through each valid species pair
+for (i in valid_pairs) {
   
-  # --- STEP 1: Calculate the Empirical Log-Odds Ratio (Syntopy Outcome) ---
-  # Using the Haldane-Anscombe correction (+0.5) to handle zeros safely
-  a <- df$k
-  b <- df$m1 - df$k
-  c <- df$m2 - df$k
-  d <- df$N - df$m1 - df$m2 + df$k
-  emp_log_OR <- log(((a + 0.5) * (d + 0.5)) / ((b + 0.5) * (c + 0.5)))
+  num_cooccurring_transects <- route_data$k[i]
   
-  # --- STEP 2: Dynamically Adjust Plotting Parameters Based on Sample Size ---
-  if (n_pairs < 50) {
-    # Small dataset settings
-    pt_col   <- rgb(0.2, 0.5, 0.7, 0.9)  # Solid colors, high visibility
-    pt_cex   <- 1.3                       # Larger points
-    pt_pch   <- 21                        # Open circles with borders
-    bg_col   <- "lightblue"               # Fill color for pch 21
-    h_breaks <- 8                         # Fewer histogram bins
-  } else if (n_pairs >= 50 & n_pairs < 300) {
-    # Medium dataset settings (Default)
-    pt_col   <- rgb(0.2, 0.5, 0.7, 0.6)  # Moderate transparency
-    pt_cex   <- 1.0                       # Standard size
-    pt_pch   <- 16                        # Solid circles
-    bg_col   <- NA
-    h_breaks <- 15                        # Standard bins
-  } else {
-    # Large dataset settings (300+ pairs) to combat overplotting
-    pt_col   <- rgb(0.1, 0.4, 0.6, 0.2)  # High transparency (shows density clusters)
-    pt_cex   <- 0.6                       # Smaller points
-    pt_pch   <- 16                        # Solid circles
-    bg_col   <- NA
-    h_breaks <- 30                        # Fine-grained histogram bins
+  # Calculate regional occupancy rates for this specific pair
+  regional_rate_A <- route_data$m1[i] / route_data$N[i]
+  regional_rate_B <- route_data$m2[i] / route_data$N[i]
+  
+  # Loop through each of those specific co-occurring transects
+  for (t in 1:num_cooccurring_transects) {
+    P_total <- 50
+    
+    # Generate point occupancy probabilities influenced by regional rate
+    local_prob_A <- rbeta(1, shape1 = regional_rate_A * 5, shape2 = (1 - regional_rate_A) * 5)
+    local_prob_B <- rbeta(1, shape1 = regional_rate_B * 5, shape2 = (1 - regional_rate_B) * 5)
+    
+    # Boundary protection
+    local_prob_A <- max(0.05, min(0.95, local_prob_A))
+    local_prob_B <- max(0.05, min(0.95, local_prob_B))
+    
+    # Draw point-scale occupancy counts bounded by 50 points
+    p_m1 <- rbinom(1, size = P_total, prob = local_prob_A)
+    p_m2 <- rbinom(1, size = P_total, prob = local_prob_B)
+    
+    # Safety floor: since they co-occur at the transect scale, they must occupy >= 1 point
+    p_m1 <- max(1, p_m1)
+    p_m2 <- max(1, p_m2)
+    
+    # Extract parent pair's regional affinity (omega)
+    local_omega <- omega[i] 
+    
+    # FIXED: Argument names removed to prevent the "formal argument 'n'" collision
+    p_k <- rFNCHypergeo(1, p_m1, P_total - p_m1, p_m2, local_omega)
+    
+    # Append variables
+    parent_pair_id   <- c(parent_pair_id, i)
+    transect_id      <- c(transect_id, paste0("Pair_", i, "_Transect_", t))
+    points_total     <- c(points_total, P_total)
+    points_m1        <- c(points_m1, p_m1)
+    points_m2        <- c(points_m2, p_m2)
+    points_cooccur_k <- c(points_cooccur_k, p_k)
   }
-  
-  # --- STEP 3: Generate the Multi-Panel Layout ---
-  # Set up a 2x2 plotting grid
-  par(mfrow = c(2, 2), mar = c(4.5, 4.5, 2.5, 1.5), las = 1)
-  
-  # Plot 1: Histogram of Sample Sizes (N)
-  hist(df$N, breaks = h_breaks, col = "grey85", border = "grey40",
-       main = paste("Distribution of N (", n_pairs, " Pairs )", sep=""),
-       xlab = "Number of Sites available (N)", ylab = "Frequency")
-  
-  # Plot 2: Single-Species Occupancy vs Realized Overlap
-  plot(df$m1 / df$N, df$k / df$N, col = pt_col, cex = pt_cex, pch = pt_pch, bg = bg_col,
-       xlim = c(0, 1), ylim = c(0, 1),
-       main = "Realized vs. Marginal Occupancy",
-       xlab = "Occupancy Rate of Species A (m1 / N)",
-       ylab = "Co-occurrence Rate (k / N)")
-  abline(a = 0, b = 1, lty = 2, col = "red") # Theoretical upper limit limit
-  
-  # Plot 3: Syntopy Outcome vs. Sympatry (Positive Predictor)
-  plot(df$sympatry, emp_log_OR, col = pt_col, cex = pt_cex, pch = pt_pch, bg = bg_col,
-       main = "Outcome vs. Sympatry Gradient",
-       xlab = "Standardized Sympatry (Z-score)",
-       ylab = "Empirical Log-Odds Ratio")
-  abline(h = 0, lty = 3, col = "grey50")
-  # Add trendline
-  fit_sym <- lm(emp_log_OR ~ df$sympatry)
-  abline(fit_sym, col = "darkorange2", lwd = 2)
-  
-  # Plot 4: Syntopy Outcome vs. Resource Divergence (Negative Predictor)
-  plot(df$res_div, emp_log_OR, col = pt_col, cex = pt_cex, pch = pt_pch, bg = bg_col,
-       main = "Outcome vs. Resource Divergence",
-       xlab = "Standardized Resource Divergence (Z-score)",
-       ylab = "Empirical Log-Odds Ratio")
-  abline(h = 0, lty = 3, col = "grey50")
-  # Add trendline
-  fit_res <- lm(emp_log_OR ~ df$res_div)
-  abline(fit_res, col = "firebrick3", lwd = 2)
-  
-  # Reset plotting parameters to default
-  par(mfrow = c(1, 1))
 }
-visualize_simulation(sim_data)
+
+# 3. Create long-format point-scale data frame
+point_scale_data <- data.frame(
+  transect_id = transect_id,
+  parent_pair_id = parent_pair_id,
+  P_total = points_total,
+  m1_points = points_m1,
+  m2_points = points_m2,
+  k_points = points_cooccur_k
+)
+
+head(point_scale_data)
 ```
 
+# Visualisation
 
 # Modeling
+
 Modeling with Fisher's hypergeometric distribution requires
+
 ```{r}
 #| include: false
 # 1. Prepare your data list (using the variables from your script)
@@ -355,6 +401,7 @@ visualize_simulation(sim_data_30)
 ```{r}
 precis(sim_data_30)
 ```
+
 # Conclusion
 
 # Reference
