@@ -6,13 +6,9 @@ format: html
 editor: visual
 ---
 
-ADD comments to your code!!! Create some functions to make it easy for changing values! Can I use matplot() for comparing how the co-occurrence depends on N sites? use dim()
-
-use system.time()
-
 # Introduction
 
-Following the framework of Remeš & Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master's thesis, where I model syntopy at two spatial scales using BBS (Breeding Bird Survey) data for passerines and range maps from eBird Status & Trends.
+Following the framework of Remeš & Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master's thesis, where I model syntopy at two spatial scales (routes and stops) using BBS (Breeding Bird Survey) data for passerines and range maps from eBird Status & Trends.
 
 To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw: 1) both species are present, 2) species A is present, 3) species B is present, or 4) both species are missing at the site. To measure the degree of species co-occurrence, we use the log-odds ratio because it centers the odds ratio around zero, making the scale linear.
 
@@ -21,9 +17,9 @@ If we want to model this problem using Bayesian methods, we can follow the appro
 ::: callout-note
 ## Goals
 
-1.  Generate dream data for 100 pairs using Fisher's hypergeometric distribution for both scales.
-2.  Visualize generated data.
-3.  Fit model using `ulam` function and compare estimates using different N for both scales.
+1.  Generate dream data for 100 pairs using Fisher's hypergeometric distribution for both scales (routes and stops).
+2.  Visualize and explore generated data.
+3.  Fit models for both scales using `ulam` function and compare the estimates with true values.
 :::
 
 # Data Simulation
@@ -75,15 +71,17 @@ I want to simulate data resembling the study design of BBS (\~40km long routes, 
 For the Fisher's hypergeometric distribution we can use the library `BiasedUrn`, for the modeling we will use `rethinking` and `rstan`.
 
 ```{r}
+#| include: false
 library(BiasedUrn)
 library(rethinking)
 library(rstan)
+library(tidyverse)
 set.seed(1)
 ```
 
 ### Route Scale
 
-For the number of sites I choose a \*\*negative binomial \*distribution\*\*, because it is an integer and I know that there is a long tail on the right site of the distribution.
+For the number of sites I choose a negative binomial distribution, because it is an integer and I know that there is a long tail on the right site of the distribution.
 
 ```{r}
 #| label: Route Scale Data Simulation
@@ -103,7 +101,7 @@ route_occupancy <- function(num_pairs){
 }
 route_oc <- route_occupancy(num_pairs = num_pairs)
 
-hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="grey")
+hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="purple")
 ```
 
 Some species pairs have very large number of sampled sites, while some of them have just a few sampled sites within the sympatric range. We can check the parameters of the distribution:
@@ -126,20 +124,18 @@ hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Numbe
 
 It is exactly like that!
 
-Let's continue with the generation of parameter values. First I will generate three already standardized variables using **normal distribution**.
+Let's continue with the generation of parameter values. First I will generate three already standardized variables using normal distribution.
 
 ```{r}
-#| label: Parameters
 X_res_div   <- rnorm(num_pairs, mean = 0, sd = 1) # X1
 X_hab_pref  <- rnorm(num_pairs, mean = 0, sd = 1) # X2
 X_prod      <- rnorm(num_pairs, mean = 0, sd = 1) # X3
 hist(X_res_div, breaks = 12, main="Resource Use Divergence", xlab="Degree of divergence", col="orange")
 ```
 
-For the degree of sympatry (% of range overlap) I need to generate specific distribution as x \> 5 (minimum degree for sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit I have to use **beta distribution**.
+For the degree of sympatry (% of range overlap) I need to generate specific distribution as x \> 5 (minimum degree for sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit I have to use beta distribution.
 
 ```{r}
-#| label: Parameter X4
 raw_beta <- rbeta(num_pairs, shape1 = 2, shape2 =3)
 sym_min <- 5 # sympatry threshold is 5 %
 symp_max <- 100 # full overlap
@@ -178,7 +174,7 @@ log_omega <- beta_0 +
 omega <- exp(log_omega)
 ```
 
-With this setted up, we calculate the linear predictor for each pair using `BiasedUrn` library.
+With this settled up, we calculate the linear predictor for each pair using `BiasedUrn` library.
 
 ```{r}
 #| label: Simulation of co-occurrence
@@ -197,7 +193,7 @@ for(i in 1:num_pairs) {
 }
 ```
 
-Let's pack it up into data.frame and take a look!
+Let's pack it up into data.frame and take a look at the data.
 
 ```{r}
 #| label: Route Scale Data Final
@@ -210,12 +206,14 @@ route_data <- data.frame(
 head(route_data)
 ```
 
-The data.frame looks good and we should now explore the data before proceeding into next stage. We need to exclude all pairs with zero co-occurrence before generating point scale data, because for this we need only the routes where both species are present (there is no reason to analyse routes with zero co-occurrence, it will highly bias the results).
+The data.frame looks good and we should now explore the data before proceeding into next stage.
 
 ```{r}
 #| label: Route Scale Data Exploration & Wrangling
-nrow(route_data[route_data$k == 0,]) # There is 18 pairs with k=0
-route_data[abs(route_data$m1 - route_data$m2) >100,] # There are 4 pairs with a very high difference in occupancy between species
+nrow(route_data[route_data$k == 0,])
+# There is 18 pairs with k=0
+route_data[abs(route_data$m1 - route_data$m2) >100,]
+# There are 4 pairs with a very high difference in occupancy between species
 ```
 
 Higher abundance among sister pairs (e.g. 80 occupied routes from 100, together at 64) can lead to the situation when both species in the pair tend to co-occur more likely simply because they are present everywhere - therefore their co-occurrence affinity will be incomparable with the species which co-occur despite being rare in general (e.g. 5 routes from 100, together at 4).
@@ -224,46 +222,17 @@ This problem of prevalence can happen if we measure co-occurrence with widely us
 
 ```{r}
 # Add unique IDs, true odds ratio and true log-odds ratio
-route_data$pair_id <- paste0("Pair_", 1:nrow(route_data))
-route_data$true_OR <- omega
-route_data$true_log_OR <- log_omega
-route_data[route_data$m1 == 0 & route_data$m2 == 0,] # There are 2 routes with zero occupancy, so called double zeros
+route_data$pair_id <- 1:nrow(route_data)
+route_data$OR <- omega
+route_data$log_OR <- log_omega
+route_data[route_data$m1 == 0 & route_data$m2 == 0,]
 ```
 
-Double zeros could mean two things. Either both species are truly absent at the route (true negatives) or they were not detected during the survey (false negatives). Given that route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were simply not there.
+There are 2 routes with zero occupancy, so called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives) or they were not detected during the survey (false negatives). Given that route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were simply not there. However, because these data are generated, we have pair's true odds ratio. If we would calculate odds ratio only from occupancy data, we would end up with infinity value.
 
-### Point Scale
+### Stop Scale
 
 Next step is to simulate point scale data based on the data for routes, which we already have. I choose to filter only pairs which have **k \>= 1**, because there is no reason to calculate syntopy on transect where is 0 possibility of co-occurrence.
-
-I also need deal with another problem, because when calculating the **Odds Ratio** or **Log Odds Ratio** at fine spatial scales it is common to encounter routes where one or more cells in the presence-absence matrix contain a count of **zero** (see box 1). This results in mathematical constraints that bias or break downstream statistical models
-
-Independent work by Haldane (1956) and Anscombe (1956) proved that adding a small, uniform correction factor of $0.5$ to every individual cell of the $2 \times 2$ table *prior* to calculating the log odds ratio resolves the infinity problem while minimizing asymptotic bias.
-
-The corrected calculation is defined as:
-
-$$\log OR_{\text{corrected}} = \ln\left(\frac{(A_{11} + 0.5) \times (A_{00} + 0.5)}{(A_{10} + 0.5) \times (A_{01} + 0.5)}\right)$$
-
-::: {.callout-note appearance="simple"}
-#### Box 1
-
-Consider a standard $2 \times 2$ co-occurrence matrix for a pair of species:
-
-|                       |    Species 2 Present     |    Species 2 Absent    |
-|:----------------------|:------------------------:|:----------------------:|
-| **Species 1 Present** | $A_{11}$ (co-occurrence) |        $A_{10}$        |
-| **Species 1 Absent**  |         $A_{01}$         | $A_{00}$ (double-zero) |
-
-The standard formulas for the association metrics are:
-
-$$OR = \frac{A_{11} \times A_{00}}{A_{10} \times A_{01}}$$
-
-$$\log OR = \ln\left(\frac{A_{11} \times A_{00}}{A_{10} \times A_{01}}\right)$$
-
-If any cell value equals zero, the calculation breaks down completely: \* If $A_{11}$ or $A_{00} = 0$, then $OR = 0$ and $\log OR = -\infty$. \* If $A_{10}$ or $A_{01} = 0$, the formula attempts a division by zero, resulting in $OR = \infty$ and $\log OR = \infty$.
-
-Linear regressions, Bayesian models, or averaging functions cannot compute coefficients when data contains values of infinity.
-:::
 
 ```{r}
 # Select only rows where k >= 1
@@ -277,16 +246,16 @@ for (row_idx in 1:nrow(valid_route_data)) {
   
   # Extract pair metadata and parameters
   current_pair  <- valid_route_data$pair_id[row_idx]
-  num_transects <- valid_route_data$k[row_idx]
-  local_omega   <- valid_route_data$true_OR[row_idx]
+  num_routes <- valid_route_data$k[row_idx]
+  local_omega   <- valid_route_data$OR[row_idx] # using same omega as for the routes
   
   # Calculate the realized regional occupancy rates for this specific pair
   rate_A <- valid_route_data$m1[row_idx] / valid_route_data$N[row_idx]
   rate_B <- valid_route_data$m2[row_idx] / valid_route_data$N[row_idx]
   
   # Loop through each of those specific co-occurring transects
-  for (t in 1:num_transects) {
-    P_total <- 50
+  for (t in 1:num_routes) {
+    S_total <- 50
     
     # Generate local point occupancy probabilities using the pair's regional rates
     local_prob_A <- rbeta(1, shape1 = rate_A * 5, shape2 = (1 - rate_A) * 5)
@@ -296,43 +265,25 @@ for (row_idx in 1:nrow(valid_route_data)) {
     local_prob_A <- max(0.01, min(0.99, local_prob_A))
     local_prob_B <- max(0.01, min(0.99, local_prob_B))
     
-    # Draw point-scale occupancy counts bounded by 50 points
-    p_m1 <- rbinom(1, size = P_total, prob = local_prob_A)
-    p_m2 <- rbinom(1, size = P_total, prob = local_prob_B)
+    # Draw stop-scale occupancy counts bounded by 50 points
+    s_m1 <- rbinom(1, size = S_total, prob = local_prob_A)
+    s_m2 <- rbinom(1, size = S_total, prob = local_prob_B)
     
     # Safety floor: since they co-occurred on this transect, they must occupy >= 1 point
-    p_m1 <- max(1, p_m1)
-    p_m2 <- max(1, p_m2)
+    s_m1 <- max(1, s_m1)
+    s_m2 <- max(1, s_m2)
     
-    # Draw realized point co-occurrences using Fisher's Noncentral Hypergeometric
-    p_k <- rFNCHypergeo(1, p_m1, P_total - p_m1, p_m2, local_omega)
+    # Draw realized stop co-occurrences using Fisher's Noncentral Hypergeometric
+    s_k <- rFNCHypergeo(1, s_m1, S_total - s_m1, s_m2, local_omega)
     
-    # Calculate local 2x2 contingency table for Haldane-Anscombe calculation
-    a11 <- p_k
-    a10 <- p_m1 - p_k
-    a01 <- p_m2 - p_k
-    a00 <- P_total - (p_m1 + p_m2 - p_k)
-    
-    # Haldane-Anscombe Correction
-    if (any(c(a11, a10, a01, a00) <= 0)) {
-      a11 <- a11 + 0.5
-      a10 <- a10 + 0.5
-      a01 <- a01 + 0.5
-      a00 <- a00 + 0.5
-    }
-    
-    # Calculate the exact local Log Odds Ratio for this specific simulated neighborhood
-    transect_log_or <- log((a11 * a00) / (a10 * a01))
-    
-    # Store results systematically in our list
+    # Wrap it up in the list
     datalist[[counter]] <- data.frame(
-      transect_id = paste0(current_pair, "_Transect_", t),
+      route_id = paste0("Pair_",current_pair, "_Route_", t),
       pair_id = current_pair,
-      P_total = P_total,
-      m1_points = p_m1,
-      m2_points = p_m2,
-      k_points = p_k,
-      local_log_OR = transect_log_or
+      S_total = S_total,
+      m1_stops = s_m1,
+      m2_stops = s_m2,
+      k_stops = s_k
     )
     counter <- counter + 1
   }
@@ -342,129 +293,256 @@ data <- do.call(rbind, datalist)
 head(data)
 ```
 
+Finally, we join our `data` with the generated parameters for each pair we already have in `route_data`.
+
 ```{r}
-stop_data <- data |> 
-  left_join(route_data, by = "pair_id")
+# Start with the simulated data (which naturally excludes k = 0 pairs)
+stop_data <- data |>
+  select(pair_id, route_id, S_total, m1_stops, m2_stops, k_stops) |> 
+  left_join(
+    # Pull ONLY the environmental covariates from route_data
+    route_data |> select(pair_id, res_div, hab_pref, prod, sympatry), 
+    by = "pair_id"
+  )
+
+# Verify the clean data frame
+head(stop_data)
 ```
 
+# Models
+
+We have prepared our data and now we can run some models using the `ulam()` function from `rethinking` package. There are several steps we need to take to get the output:
+
+1.  Wrap up data into list, so `ulam` can read it.
+
+2.  Import the separate file for Fishers's non-central hypergeometric likelihood function (box 1).
+
+3.  Set up the model formula in `ulam`.
+
+4.  Transform the code into stan syntax.
+
+5.  Run the model using `stan()` function from `rstan` package.
+
+::: {.callout-tip collapse="false"}
+## Box 1
+
+The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species sort completely at random, this distribution accounts for ecological attraction or repulsion via an odds ratio parameter.
+
+### 1. Constraints and Support Bounds
+
+The function first calculates the absolute physical boundaries of co-occurrence ($k$) allowed by the individual species' occupancy counts ($m_1, m_2$) within the total sampled sites ($N$): $$k_{\min} = \max(0, m_1 + m_2 - N)$$ $$k_{\max} = \min(m_1, m_2)$$
+
+If an observed or sampled co-occurrence count falls outside this range ($k < k_{\min}$ or $k > k_{\max}$), the function returns $-\infty$, assigning it a probability of 0 and rendering that parameter space impossible for the MCMC sampler.
+
+### 2. The Log-Numerator (The Observed State)
+
+For the actual observed co-occurrences ($k$) under a estimated conditional odds ratio ($\mu$), the unnormalized log-probability is calculated using log-combinatorics (`lchoose`): $$\log(\text{Numerator}) = \ln \binom{m_1}{k} + \ln \binom{N - m_1}{m_2 - k} + k \cdot \ln(\mu)$$
+
+### 3. The Partition Function (Normalization Constant)
+
+Because the probabilities of all possible outcomes must sum to exactly 1, the function loops through every valid state from $k_{\min}$ to $k_{\max}$ to calculate the total probability space vector ($\mathbf{T}$). It then normalizes the final probability by subtracting the total sum of this vector from our observed state using a numerically stable routine: $$\text{LPMF} = \log(\text{Numerator}) - \text{log\_sum\_exp}(\mathbf{T})$$
+
+In a log-space framework, subtraction mathematically equates to division, successfully producing a clean, fully normalized probability density score for the sampler.
+:::
+
+## Route Scale Model
+
 ```{r}
-local_syntopy_summary <- stop_data |> 
-  # 1. Force the column to be numbers
-  mutate(local_log_or = as.numeric(local_log_or)) |> 
-  # 2. Group and summarize as usual
-  group_by(pair_id) |> 
-  summarize(mean_local_log_or = mean(local_log_or, na.rm = TRUE))
-
-# View your clean results!
-head(local_syntopy_summary)
-```
-
-# Model
-
-```{r}
-#| include: false
-# 1. Prepare your data list (using the variables from your script)
-dat_list_fisher <- list(
-  k        = route_data$k,
-  m1       = route_data$m1,
-  m2       = route_data$m2,
-  N        = route_data$N,
-  res_div  = route_data$res_div,
+dat_list <- list(
+  k = route_data$k,
+  m1 = route_data$m1,
+  m2 = route_data$m2,
+  N = route_data$N,
+  res_div = route_data$res_div,
   hab_pref = route_data$hab_pref,
-  prod     = route_data$prod,
+  prod = route_data$prod,
   sympatry = route_data$sympatry
 )
+# Read separate stan file and wrap it in the required Stan syntax
+likelihood_pmf <- paste(
+  "functions {",
+  paste(readLines("fisher_nchyper_lpmf.stan"), collapse = "\n"),
+  "}",
+  sep = "\n"
+)
 
-# 2. Build the skeleton code using ulam()
-# The custom() macro does two things: it writes the "target += ..." Stan call, 
-# and it forces ulam to correctly declare k, m1, m2, and N in the data block.
-m_skeleton <- ulam(
+# Model settings
+model <- ulam(
   alist(
-    # Likelihood 
-    k ~ custom( fisher_hyper_lpmf(k | exp(log_omega), m1, m2, N) ),
+    # Likelihood
+    k ~ custom( fisher_hyper_lpmf(k[i] | exp(log_omega[i]), m1[i], m2[i], N[i]) ),
     
     # Linear Predictor
-    log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_sym*sympatry + b_prod*prod,
+    log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry,
     
     # Priors
-    b0 ~ dnorm(0, 1),
-    b_res ~ dnorm(0, 1),
-    b_hab ~ dnorm(0, 1),
-    b_sym ~ dnorm(0, 1),
-    b_prod ~ dnorm(0, 1)
+    b0 ~ dnorm(0, 10),
+    b_res ~ dnorm(0, 10),
+    b_hab ~ dnorm(0, 10),
+    b_sym ~ dnorm(0, 10),
+    b_prod ~ dnorm(0, 10)
   ), 
-  data = dat_list_fisher, 
-  sample = FALSE # CRITICAL: This tells ulam to build the code, but not run it!
+  data = dat_list, 
+  sample = FALSE # Generate text for stan, not sampling yet
 )
 
-# 3. Extract the autogenerated Stan code
-stan_code <- stancode(m_skeleton)
+# Extract the autogenerated text
+stan_code <- stancode(model)
 
-# FIX: Add the missing row-indices [i] for m1, m2, and N that ulam missed
-stan_code <- gsub(
-  pattern = "fisher_hyper_lpmf(k[i] | exp(log_omega[i]), m1, m2, N)",
-  replacement = "fisher_hyper_lpmf(k[i] | exp(log_omega[i]), m1[i], m2[i], N[i])",
-  x = stan_code,
-  fixed = TRUE
-)
+# Paste the file-loaded functions block to the top of the text string
+full_stan_code <- paste0(likelihood_pmf, "\n", stan_code)
 
-# 4. Define your supervisor's C++ function block (with corrected variable names)
-functions_block <- "
-functions {
-  real fisher_hyper_lpmf(int k, real mu, int m1, int m2, int N) {
-    if (mu <= 0) return not_a_number();
-    
-    // Bounds for hypergeometric distribution
-    int k_min = max({0, m1 + m2 - N});
-    int k_max = min({m1, m2});
-    
-    // Safety check for support bounds
-    if (k < k_min || k > k_max) return negative_infinity();
-    
-    // Log-numerator for the observed value k
-    real log_num = lchoose(m1, k) + lchoose(N - m1, m2 - k) + k * log(mu);
-    
-    // Normalization constant calculation
-    int range_size = k_max - k_min + 1;
-    vector[range_size] terms;
-    
-    for (i in 0:(range_size - 1)) {
-      int curr_i = k_min + i;
-      terms[i + 1] = lchoose(m1, curr_i) + lchoose(N - m1, m2 - curr_i) + curr_i * log(mu);
-    }
-    
-    return log_num - log_sum_exp(terms);
-  }
-}
-"
-
-# 5. Inject the functions block at the very top of the corrected code
-full_stan_code <- paste0(functions_block, stan_code)
-
-# 6. Compile and sample directly with rstan
-m_fisher_rethinking <- stan(
+# Run the compiled model using rstan
+out_routes <- stan(
   model_code = full_stan_code,
-  data = dat_list_fisher,
+  data = dat_list,
   chains = 4, 
   cores = 4,
-  iter = 2000,
-  seed = 1
+  iter = 4000,
+  seed = 1,
+  refresh = 0 # <--- Turns off the iteration progress tracker
 )
 ```
 
+First we can check the convergence of chains.
+
 ```{r}
-precis(m_fisher_rethinking)
+traceplot(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod"))
+```
+
+All chains have converged nicely!
+
+```{r}
+precis(out_routes)
+```
+
+Our model estimates for most parameters are very good, however the intercept (baseline log-odds ratio) is a bit underestimated despite the credible interval includes the true value (0.5).
+
+## Stop Scale Model
+
+```{r}
+# Map character route IDs to sequential integers for Stan indexing
+stop_data$route_index <- as.integer(as.factor(stop_data$route_id))
+
+dat_list_stops <- list(
+  k_stops     = stop_data$k_stops,
+  m1_stops    = stop_data$m1_stops,
+  m2_stops    = stop_data$m2_stops,
+  S_total     = stop_data$S_total,
+  res_div     = stop_data$res_div,
+  hab_pref    = stop_data$hab_pref,
+  prod        = stop_data$prod,
+  sympatry    = stop_data$sympatry,
+  route_index = stop_data$route_index
+)
+
+# Model Settings
+model_stops <- ulam(
+  alist(
+    # Likelihood using stop-level data arrays
+    k_stops ~ custom( fisher_hyper_lpmf(k_stops[i] | exp(log_omega[i]), m1_stops[i], m2_stops[i], S_total[i]) ),
+    
+    # Linear Predictor: Pair baseline + Route random effect deviation
+log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry + (z_route[route_index] * sigma_route),
+
+    # Fixed Effect Priors
+    b0 ~ dnorm(0, 10),
+    b_res ~ dnorm(0, 10),
+    b_hab ~ dnorm(0, 10),
+    b_sym ~ dnorm(0, 10),
+    b_prod ~ dnorm(0, 10),
+    
+    # Adaptive Priors
+    # Non-Centered Random Effect Layer
+    # z_route is a completely standard, clean vector array
+    z_route[route_index] ~ dnorm(0, 1),
+    sigma_route ~ dexp(1)
+    # exponential distribution forces sigma_route
+    # to be strictly positive (since a standard deviation cannot be negative)
+  ), 
+  data = dat_list_stops, 
+  sample = FALSE # Generate text for stan, not sampling yet
+)
+
+# Extract the autogenerated text
+stan_code_stops <- stancode(model_stops)
+
+# Paste the file-loaded functions block to the top of the text string
+full_stan_code_stops <- paste0(likelihood_pmf, "\n", stan_code_stops)
+
+# Run the compiled model using rstan
+out_stops <- stan(
+  model_code = full_stan_code_stops,
+  data = dat_list_stops,
+  chains = 4, 
+  cores = 4,
+  iter = 4000,
+  seed = 1,
+  refresh = 0 # <--- Turns off the iteration progress tracker
+)
+```
+
+There were several warnings at the and of the sampling, that some chains did not converged in an optimal way so we first check the traceplot for the main parameters.
+
+```{r}
+traceplot(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
+```
+
+Now we can take a look at the parameter estimates.
+
+```{r}
+precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
+```
+
+```{r}
+# Extract posterior sample draws
+post_stops <- extract.samples(out_stops)
+n_samples  <- length(post_stops$b0)
+n_rows     <- nrow(stop_data)
+
+# Create an empty matrix to hold log-odds (rows = post-samples, cols = stop_data rows)
+log_omega_routes <- matrix(NA, nrow = n_samples, ncol = n_rows)
+
+# Reconstruct log_omega per transect by pulling pair fixed effects and adding local random noise
+for(i in 1:n_rows) {
+  pair_base <- post_stops$b0 + 
+               post_stops$b_res * stop_data$res_div[i] + 
+               post_stops$b_hab * stop_data$hab_pref[i] + 
+               post_stops$b_sym * stop_data$sympatry[i] + 
+               post_stops$b_prod * stop_data$prod[i]
+  
+  # Manually reconstruct the route deviation from the non-centered samples
+  current_route_idx <- stop_data$route_index[i]
+  reconstructed_a_route <- post_stops$z_route[, current_route_idx] * post_stops$sigma_route
+  
+  # Total local log-odds ratio
+  log_omega_routes[, i] <- pair_base + reconstructed_a_route
+}
+
+# 1. Compute and assign the estimated log-odds ratio back to each individual transect row
+stop_data$estimated_local_log_OR <- colMeans(log_omega_routes)
+
+# 2. Average the estimated log-odds values for each distinct pair_id
+pair_level_averages <- aggregate(estimated_local_log_OR ~ pair_id, data = stop_data, FUN = mean)
+print(head(pair_level_averages))
+```
+
+We can compare it with the true values of local logOR.
+
+```{r}
+stop_model_evaluation <- pair_level_averages %>% 
+  left_join(route_data %>% select(pair_id, true_log_OR = log_OR), by = "pair_id")
+print(head(stop_model_evaluation))
 ```
 
 # Smaller number of sister pairs (n=30)
 
 ```{r}
-sim_data_30 <- sim_data
-visualize_simulation(sim_data_30)
+
 ```
 
 ```{r}
-precis(sim_data_30)
+
 ```
 
 # Conclusion
