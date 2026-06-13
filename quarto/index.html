@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Matěj Tvarůžka">
-<meta name="dcterms.date" content="2026-06-12">
+<meta name="dcterms.date" content="2026-06-13">
 
 <title>Bayesian Analysis of Syntopy</title>
 <style>
@@ -60,7 +60,26 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="index_files/libs/clipboard/clipboard.min.js"></script>
@@ -116,7 +135,15 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Bayesian Analysis of Syntopy</h1>
-</div>
+<p class="subtitle lead">Assignment for Bayesian Statistics Course</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">Syntopy</div>
+    <div class="quarto-category">Spatial Data</div>
+    <div class="quarto-category">Birds</div>
+    <div class="quarto-category">R</div>
+    <div class="quarto-category">Bayesian Inference</div>
+  </div>
+  </div>
 
 
 
@@ -132,7 +159,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 12, 2026</p>
+      <p class="date">June 13, 2026</p>
     </div>
   </div>
   
@@ -146,23 +173,62 @@ window.Quarto = {
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>Following the framework of Remeš &amp; Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, where I model syntopy at two spatial scales (routes and stops) using BBS (Breeding Bird Survey) data for passerines and range maps from eBird Status &amp; Trends.</p>
-<p>To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw: 1) both species are present, 2) species A is present, 3) species B is present, or 4) both species are missing at the site. To measure the degree of species co-occurrence, we use the log-odds ratio because it centers the odds ratio around zero, making the scale linear.</p>
-<p>If we want to model this problem using Bayesian methods, we can follow the approach in Newbury (2024), but we will not include random effects in the model and will use only a simple Bayesian linear regression. The most accurate probability distribution for our problem is <strong>Fisher’s non-central hypergeometric distribution</strong>, where <em>N</em> denotes the population size (number of sites within the sympatric zone), <em>K</em> is the number of co-occurrence states (<em>K</em> = 4), <em>n</em> is the number of draws, and <em>k</em> is the number of co-occurrences. This distribution is accurate because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.</p>
+<p>Following the framework of <span class="citation" data-cites="remes2023">Remeš and Harmáčková (<a href="#ref-remes2023" role="doc-biblioref">2023</a>)</span>, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales (routes and stops) using BBS (Breeding Bird Survey) data for passerines and eBird Status &amp; Trends range maps.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Goals
+<span class="screen-reader-only">Note</span>Assignment Goals
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <ol type="1">
-<li>Generate dream data for 100 pairs using Fisher’s hypergeometric distribution for both scales (routes and stops).</li>
-<li>Visualize and explore generated data.</li>
-<li>Fit models for both scales using <code>ulam</code> function and compare the estimates with true values.</li>
+<li>Generate dream syntopy data for both scales (routes and stops).</li>
+<li>Visualise and explore generated data.</li>
+<li>Fit models for both scales using the <code>ulam</code> function and compare the estimates with true values.</li>
+</ol>
+</div>
+</div>
+<p>To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis, because otherwise it will lead to biased results <span class="citation" data-cites="remes2023">Remeš and Harmáčková (<a href="#ref-remes2023" role="doc-biblioref">2023</a>)</span>. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw:</p>
+<ol type="1">
+<li>Both species are present,</li>
+<li>Species A is present,</li>
+<li>Species B is present,</li>
+<li>Both species are missing at the site.</li>
+</ol>
+<p>If we want to model this problem using Bayesian methods, we can follow the approach in <span class="citation" data-cites="newbury">Newbury (<a href="#ref-newbury" role="doc-biblioref">n.d.</a>)</span> measuring the degree of species co-occurrence with the log-odds ratio (see box 1). The most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Box 1: Bayesian Log Odds Ratio
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The log-odds ratio serves as the foundational metric to quantify spatial association between sister species. Based on a standard <span class="math inline">\(2 \times 2\)</span> presence-absence matrix (<span class="math inline">\(a\)</span> = both present, <span class="math inline">\(b/c\)</span> = single species present, <span class="math inline">\(d\)</span> = both absent), the empirical calculation is:</p>
+<p><span class="math display">\[\log \text{OR}_{\text{}} = \ln\left(\frac{a \times d}{b \times c}\right)\]</span></p>
+<p>In this assignment, we transition away from this traditional empirical formula and instead implement a Bayesian framework. The key distinctions and advantages are:</p>
+<ol type="1">
+<li><p><strong>Mathematical Formulation:</strong></p>
+<p>The observed co-occurrence <span class="math inline">\(k_i\)</span> is modelled with Fisher’s Hypergeometric distribution representing local survey plots within that site: <span class="math display">\[k_i \sim \text{FisherHypergeometric}(m_{1i}, m_{2i}, N_i, \alpha_i)\]</span></p>
+<p>where:</p>
+<ul>
+<li><p><span class="math inline">\(k_i\)</span> = number of sites where both species co-occur</p></li>
+<li><p><span class="math inline">\(m_{1i}\)</span> = total number of sites where species A is present for pair <span class="math inline">\(i\)</span></p></li>
+<li><p><span class="math inline">\(m_{2i}\)</span> = total number of sites where species B is present for pair <span class="math inline">\(i\)</span></p></li>
+<li><p><span class="math inline">\(N_i\)</span> = total number of sites sampled within the sympatric range of pair <span class="math inline">\(i\)</span></p></li>
+<li><p><span class="math inline">\(\alpha_i\)</span> = the conditional co-occurrence odds ratio for pair <span class="math inline">\(i\)</span>.</p></li>
+</ul>
+<p>For each site <span class="math inline">\(i\)</span> out of <span class="math inline">\(N\)</span>, the co-occurrence affinity (<span class="math inline">\(ω_i\)</span>) is the log-odds ratio of given parameters:</p>
+<p><span class="math display">\[\text{log}(\alpha_i) = \beta_{0} + \beta_{1} \cdot X_{1,i} + \lambda_{1,i}\]</span></p></li>
+<li><p><strong>Mathematical Stability:</strong> By evaluating data through the Log Probability Mass Function (LPMF) of Fisher’s Non-Central Hypergeometric distribution, our model naturally handles small sample sizes and zero counts. It completely bypasses the need to delete data or inject mathematical bandages.</p></li>
+<li><p><strong>Symmetric Linear Predictors:</strong> Taking the natural logarithm maps highly asymmetric raw odds ratios onto a continuous linear space from <span class="math inline">\(-\infty\)</span> to <span class="math inline">\(+\infty\)</span>, centering independent sorting perfectly at <span class="math inline">\(0\)</span> (<span class="math inline">\(&gt;0\)</span> is syntopy, <span class="math inline">\(&lt;0\)</span> is segregation). This allows our ecological parameters (<span class="math inline">\(\beta_{\text{res}}\)</span>, <span class="math inline">\(\beta_{\text{hab}}\)</span>, etc.) to be added together seamlessly.</p></li>
+<li><p><strong>Information Pooling:</strong> Unlike the typical formula, which treats every route as an isolated island, our hierarchical structure links local routes together. If a specific route has noisy counts, the model performs <strong>partial pooling</strong>—shrinking its local estimate back toward the regional baseline dictated by the environmental covariates.</p></li>
+<li><p><strong>Prevalence Invariance:</strong> Unlike traditional similarity indices (e.g., Jaccard, Simpson), this metric standardises for baseline regional abundance, therefore isolates true ecological affinity without being biased by widespread or ubiquitous species.</p></li>
 </ol>
 </div>
 </div>
@@ -172,38 +238,18 @@ window.Quarto = {
 <p>To satisfy the assignment’s complexity requirements, I define <strong>5 true parameters</strong> that dictate the data-generating process:</p>
 <ul>
 <li><p><span class="math inline">\(\beta_{0} = 0.5\)</span> (Baseline log-odds of co-occurrence; slight facilitation)</p></li>
-<li><p><span class="math inline">\(\beta_{res.div} = 0.8\)</span> (Resource use divergence: greater divergence increases syntopy)</p></li>
-<li><p><span class="math inline">\(\beta_{hab.pref} = -0.6\)</span> (Difference in micro-habitat and environmental preference decreases syntopy)</p></li>
+<li><p><span class="math inline">\(\beta_{res.div} = -0.7\)</span> (Resource use divergence: greater divergence increases syntopy)</p></li>
+<li><p><span class="math inline">\(\beta_{hab.pref} = 0.6\)</span> (Difference in micro-habitat and environmental preference decreases syntopy)</p></li>
 <li><p><span class="math inline">\(\beta_{prod} = 0.3\)</span> (Environmental productivity (e.g., NDVI): richer environments support co-occurrence)</p></li>
-<li><p><span class="math inline">\(\beta_{sympatry} = 1.2\)</span> (Spatial overlap: regional overlap strongly increases syntopy)</p></li>
+<li><p><span class="math inline">\(\beta_{sympatry} = 0.8\)</span> (Spatial overlap: regional overlap strongly increases syntopy)</p></li>
 </ul>
-<section id="fishers-hypergeometric-distribution" class="level2">
-<h2 class="anchored" data-anchor-id="fishers-hypergeometric-distribution">Fishers’ Hypergeometric Distribution</h2>
-<section id="mathematical-formulation" class="level3">
-<h3 class="anchored" data-anchor-id="mathematical-formulation">Mathematical Formulation</h3>
-<p>For each site <span class="math inline">\(i\)</span> out of <span class="math inline">\(N\)</span>, the co-occurrence affinity (<span class="math inline">\(α\)</span>) is the log-odds ratio of given parameters:</p>
-<p><span class="math display">\[\text{log}(ω_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}\]</span></p>
-<p>The observed co-occurrence <span class="math inline">\(k_i\)</span> is modeled with <strong>Fisher’s Hypergeometric distribution</strong> representing local survey plots within that site:</p>
-<p><span class="math display">\[k_i \sim \text{FisherHypergeometric}(m_{1i},m_{2i}, N_i, ω_i)\]</span></p>
-<p>where:</p>
-<ul>
-<li><p><span class="math inline">\(k_i\)</span> = number of sites where both species co-occur</p></li>
-<li><p><span class="math inline">\(m_{1i}\)</span> = total number of sites where species A is present for pair <span class="math inline">\(i\)</span></p></li>
-<li><p><span class="math inline">\(m_{2i}\)</span> = total number of sites where species B is present for pair <span class="math inline">\(i\)</span></p></li>
-<li><p><span class="math inline">\(N_i\)</span> = total number of sites sampled within the sympatric range of pair <span class="math inline">\(i\)</span></p></li>
-<li><p><span class="math inline">\(ω_i\)</span> = the conditional co-occurrence odds ratio for pair <span class="math inline">\(i\)</span></p></li>
-</ul>
-</section>
-</section>
-<section id="data-generation" class="level2">
-<h2 class="anchored" data-anchor-id="data-generation">Data Generation</h2>
-<p>I want to simulate data resembling the study design of BBS (~40km long routes, each having 50 stops). Therefore I need to create two data sets:</p>
+<p>I want to simulate data that resembles the BBS study design (~40 km-long routes, each with 50 stops). Therefore, I need to create two data sets:</p>
 <p>1) route scale (looking at syntopy across transects within the range overlap)</p>
 <p>2) stop scale (looking at syntopy within transects)</p>
-<p>For the Fisher’s hypergeometric distribution we can use the library <code>BiasedUrn</code>, for the modeling we will use <code>rethinking</code> and <code>rstan</code>.</p>
-<section id="route-scale" class="level3">
-<h3 class="anchored" data-anchor-id="route-scale">Route Scale</h3>
-<p>For the number of sites I choose a negative binomial distribution, because it is an integer and I know that there is a long tail on the right site of the distribution.</p>
+<p>For Fisher’s non-central hypergeometric distribution we can use the library <code>BiasedUrn</code> library, and for the modelling, we will use libraries <code>rethinking</code> and <code>rstan</code>.</p>
+<section id="route-scale" class="level2">
+<h2 class="anchored" data-anchor-id="route-scale">Route Scale</h2>
+<p>For the number of sites, I choose a negative binomial distribution because it is integer-valued and has a long right tail.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>num_pairs <span class="ot">&lt;-</span> <span class="dv">100</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>route_occupancy <span class="ot">&lt;-</span> <span class="cf">function</span>(num_pairs){</span>
@@ -230,7 +276,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>Some species pairs have very large number of sampled sites, while some of them have just a few sampled sites within the sympatric range. We can check the parameters of the distribution:</p>
+<p>Some species pairs have a very large number of sampled sites, while others have just a few within the sympatric range. We can check the parameters of the distribution:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(route_oc<span class="sc">$</span>N)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -249,7 +295,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>This plot nicely resembles species abundance distribution, so if we take a logarithm of it it should be close to normal distribution.</p>
+<p>This plot resembles a species abundance distribution, so if we take the logarithm of it, it should be close to a normal distribution.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">log</span>(route_oc<span class="sc">$</span>m1), <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"Species Occupancy Sample"</span>, <span class="at">xlab=</span><span class="st">"Number of occupied routes"</span>, <span class="at">col=</span><span class="st">"red"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -261,7 +307,7 @@ window.Quarto = {
 </div>
 </div>
 <p>It is exactly like that!</p>
-<p>Let’s continue with the generation of parameter values. First I will generate three already standardized variables using normal distribution.</p>
+<p>Let us continue with parameter generation. First, I will generate three already standardised variables using the normal distribution.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>X_res_div   <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(num_pairs, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>) <span class="co"># X1</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>X_hab_pref  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(num_pairs, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>) <span class="co"># X2</span></span>
@@ -275,7 +321,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>For the degree of sympatry (% of range overlap) I need to generate specific distribution as x &gt; 5 (minimum degree for sympatry is typically 5 %) and x &lt;= 100. As I want the values to have decimals and I need a strict upper limit I have to use beta distribution.</p>
+<p>Let us continue with parameter generation. First, I will generate three already standardised variables using the normal distribution. For the degree of sympatry (% of range overlap), I need to generate a distribution with x &gt; 5 (the minimum degree of sympatry is typically 5 %) and x &lt;= 100. As I want the values to have decimals and I need a strict upper limit, I have to use a beta distribution.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>raw_beta <span class="ot">&lt;-</span> <span class="fu">rbeta</span>(num_pairs, <span class="at">shape1 =</span> <span class="dv">2</span>, <span class="at">shape2 =</span><span class="dv">3</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>sym_min <span class="ot">&lt;-</span> <span class="dv">5</span> <span class="co"># sympatry threshold is 5 %</span></span>
@@ -290,10 +336,10 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>We can see that most of the pairs have a high degree of sympatry and few pairs have very low values. Now we have to standardize it prior to modeling.</p>
+<p>We can see that most pairs have a high degree of sympatry, while a few have very low values. Now we have to standardise it prior to modelling.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>X_sympatry <span class="ot">&lt;-</span> (sympatry <span class="sc">-</span> <span class="fu">mean</span>(sympatry)) <span class="sc">/</span> <span class="fu">sd</span>(sympatry) <span class="co"># X3</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(X_sympatry, <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"zSympatry (Standardized)"</span>, <span class="at">xlab=</span><span class="st">"Z-score"</span>, <span class="at">col=</span><span class="st">"steelblue"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(X_sympatry, <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"zSympatry (Standardised)"</span>, <span class="at">xlab=</span><span class="st">"Z-score"</span>, <span class="at">col=</span><span class="st">"steelblue"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -302,24 +348,24 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>Now we set the “true” values for the parameters in our made-up universe.</p>
+<p>Now we set the “true” parameter values in our made-up universe.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>beta_0        <span class="ot">&lt;-</span> <span class="fl">0.5</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>beta_res_div  <span class="ot">&lt;-</span> <span class="fl">0.8</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>beta_hab_pref <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fl">0.6</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>beta_sympatry <span class="ot">&lt;-</span> <span class="fl">1.2</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>beta_res_div  <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fl">0.7</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>beta_hab_pref <span class="ot">&lt;-</span> <span class="fl">0.6</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>beta_sympatry <span class="ot">&lt;-</span> <span class="fl">0.8</span></span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>beta_prod     <span class="ot">&lt;-</span> <span class="fl">0.3</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Next step is the calculation of linear combination of parameters and we exponentiate the log-odds to get simple odds ratio.</p>
+<p>The next step is to calculate a linear combination of parameters, and we exponentiate the log-odds to obtain a simple odds ratio.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>log_omega <span class="ot">&lt;-</span> beta_0 <span class="sc">+</span> </span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>log_alpha <span class="ot">&lt;-</span> beta_0 <span class="sc">+</span> </span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>             beta_res_div  <span class="sc">*</span> X_res_div <span class="sc">+</span> </span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>             beta_hab_pref <span class="sc">*</span> X_hab_pref <span class="sc">+</span> </span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>             beta_sympatry <span class="sc">*</span> X_sympatry <span class="sc">+</span> </span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>             beta_prod     <span class="sc">*</span> X_prod</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>omega <span class="ot">&lt;-</span> <span class="fu">exp</span>(log_omega)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>alpha <span class="ot">&lt;-</span> <span class="fu">exp</span>(log_alpha) <span class="co"># Odds Ratio</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>With this settled up, we calculate the linear predictor for each pair using <code>BiasedUrn</code> library.</p>
+<p>With this settled, we calculate the linear predictor for each pair using the <code>BiasedUrn</code> library.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">&lt;-</span> route_oc<span class="sc">$</span>m1</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">&lt;-</span> route_oc<span class="sc">$</span>m2</span>
@@ -331,11 +377,11 @@ window.Quarto = {
 <span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    k[i] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># rFNCHypergeo(n_samples, m1, m2, total_draws, odds)</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    k[i] <span class="ot">&lt;-</span> <span class="fu">rFNCHypergeo</span>(<span class="dv">1</span>, route_oc<span class="sc">$</span>m1[i], route_oc<span class="sc">$</span>N[i] <span class="sc">-</span> route_oc<span class="sc">$</span>m1[i], route_oc<span class="sc">$</span>m2[i], omega[i])</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    k[i] <span class="ot">&lt;-</span> <span class="fu">rFNCHypergeo</span>(<span class="dv">1</span>, route_oc<span class="sc">$</span>m1[i], route_oc<span class="sc">$</span>N[i] <span class="sc">-</span> route_oc<span class="sc">$</span>m1[i], route_oc<span class="sc">$</span>m2[i], alpha[i])</span>
 <span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Let’s pack it up into data.frame and take a look at the data.</p>
+<p>Let us pack it up into <code>data.frame</code> and take a look at the data.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>route_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">N =</span> route_oc<span class="sc">$</span>N, <span class="at">m1 =</span> m1, <span class="at">m2 =</span> m2, <span class="at">k =</span> k,</span>
@@ -346,53 +392,52 @@ window.Quarto = {
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(route_data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>    N m1 m2  k    res_div   hab_pref       prod    sympatry
-1  50 13 22 10  0.5941965 -0.4349607 -0.1926103  0.81188633
+1  50 13 22  6  0.5941965 -0.4349607 -0.1926103  0.81188633
 2 178 59 12  4 -0.2703152 -0.5217542  1.6831539 -0.62190366
-3 204 34 39 10  1.5540761  0.9922884  0.1025738 -0.07146905
-4 111 74  8  8 -0.5107425 -1.0854224 -0.6548353  0.48325259
-5  30  9 24  8 -0.2918427  0.9598324  1.1865752  0.26160682
-6  57 14 42 14  1.1014382 -1.0390105 -1.2723697  1.22416871</code></pre>
+3 204 34 39  4  1.5540761  0.9922884  0.1025738 -0.07146905
+4 111 74  8  7 -0.5107425 -1.0854224 -0.6548353  0.48325259
+5  30  9 24  9 -0.2918427  0.9598324  1.1865752  0.26160682
+6  57 14 42 11  1.1014382 -1.0390105 -1.2723697  1.22416871</code></pre>
 </div>
 </div>
-<p>The data.frame looks good and we should now explore the data before proceeding into next stage.</p>
+<p>The <code>data.frame</code> looks good, and we should now explore the data before proceeding to the next stage.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(route_data[route_data<span class="sc">$</span>k <span class="sc">==</span> <span class="dv">0</span>,])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 18</code></pre>
+<pre><code>[1] 15</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># There is 18 pairs with k=0</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>route_data[<span class="fu">abs</span>(route_data<span class="sc">$</span>m1 <span class="sc">-</span> route_data<span class="sc">$</span>m2) <span class="sc">&gt;</span><span class="dv">100</span>,]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>     N  m1  m2  k    res_div   hab_pref        prod   sympatry
-22 215 159  50 50  0.7065288 -0.2950050 -0.92520123  1.6677320
+22 215 159  50 45  0.7065288 -0.2950050 -0.92520123  1.6677320
 51 124   6 111  6 -1.8049758 -1.7082702  0.02757897  2.0987846
-91 248  30 152 24  0.4852115 -0.2990197  1.81382471 -0.9147479
+91 248  30 152 20  0.4852115 -0.2990197  1.81382471 -0.9147479
 94 157  15 139 15  0.5672497  1.3156051 -0.88018810  0.4669157</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># There are 4 pairs with a very high difference in occupancy between species</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Higher abundance among sister pairs (e.g.&nbsp;80 occupied routes from 100, together at 64) can lead to the situation when both species in the pair tend to co-occur more likely simply because they are present everywhere - therefore their co-occurrence affinity will be incomparable with the species which co-occur despite being rare in general (e.g.&nbsp;5 routes from 100, together at 4).</p>
-<p>This problem of prevalence can happen if we measure co-occurrence with widely used indices of similarity (e.g., Jaccard, Simpson). Bayesian inference elegantly solves this problem as it proportionately weights the relative abundances of species.</p>
+<p>Now we have to make an unique id for each pair to be able to link it later with stops data.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add unique IDs, true odds ratio and true log-odds ratio</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>route_data<span class="sc">$</span>pair_id <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(route_data)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>route_data<span class="sc">$</span>OR <span class="ot">&lt;-</span> omega</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>route_data<span class="sc">$</span>log_OR <span class="ot">&lt;-</span> log_omega</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>route_data<span class="sc">$</span>OR <span class="ot">&lt;-</span> alpha</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>route_data<span class="sc">$</span>log_OR <span class="ot">&lt;-</span> log_alpha</span>
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>route_data[route_data<span class="sc">$</span>m1 <span class="sc">==</span> <span class="dv">0</span> <span class="sc">&amp;</span> route_data<span class="sc">$</span>m2 <span class="sc">==</span> <span class="dv">0</span>,]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   N m1 m2 k   res_div hab_pref       prod    sympatry pair_id       OR
-26 6  0  0 0 0.4388219 1.004804 -0.6637302 -1.79193802      26 0.122301
-57 3  0  0 0 0.7831276 2.152701 -1.3818547 -0.06537727      57 0.517820
+26 6  0  0 0 0.4388219 1.004804 -0.6637302 -1.79193802      26 0.433024
+57 3  0  0 0 0.7831276 2.152701 -1.3818547 -0.06537727      57 2.174009
        log_OR
-26 -2.1012698
-57 -0.6581275</code></pre>
+26 -0.8369622
+57  0.7765729</code></pre>
 </div>
 </div>
-<p>There are 2 routes with zero occupancy, so called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives) or they were not detected during the survey (false negatives). Given that route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were simply not there. However, because these data are generated, we have pair’s true odds ratio. If we would calculate odds ratio only from occupancy data, we would end up with infinity value.</p>
+<p>There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there.</p>
 </section>
-<section id="stop-scale" class="level3">
-<h3 class="anchored" data-anchor-id="stop-scale">Stop Scale</h3>
-<p>Next step is to simulate point scale data based on the data for routes, which we already have. I choose to filter only pairs which have <strong>k &gt;= 1</strong>, because there is no reason to calculate syntopy on transect where is 0 possibility of co-occurrence.</p>
+<section id="stop-scale" class="level2">
+<h2 class="anchored" data-anchor-id="stop-scale">Stop Scale</h2>
+<p>The next step is to simulate point-scale data from the route data we already have. I choose to filter only pairs with <strong>k &gt;= 1</strong>, because there is no reason to calculate syntopy on transects where there is 0 possibility of co-occurrence.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Select only rows where k &gt;= 1</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>valid_route_data <span class="ot">&lt;-</span> route_data[route_data<span class="sc">$</span>k <span class="sc">&gt;=</span> <span class="dv">1</span>, ]</span>
@@ -406,7 +451,7 @@ window.Quarto = {
 <span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extract pair metadata and parameters</span></span>
 <span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  current_pair  <span class="ot">&lt;-</span> valid_route_data<span class="sc">$</span>pair_id[row_idx]</span>
 <span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  num_routes <span class="ot">&lt;-</span> valid_route_data<span class="sc">$</span>k[row_idx]</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  local_omega   <span class="ot">&lt;-</span> valid_route_data<span class="sc">$</span>OR[row_idx] <span class="co"># using same omega as for the routes</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  local_alpha   <span class="ot">&lt;-</span> valid_route_data<span class="sc">$</span>OR[row_idx] <span class="co"># using same alpha as for the route sclae</span></span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Calculate the realized regional occupancy rates for this specific pair</span></span>
 <span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  rate_A <span class="ot">&lt;-</span> valid_route_data<span class="sc">$</span>m1[row_idx] <span class="sc">/</span> valid_route_data<span class="sc">$</span>N[row_idx]</span>
@@ -433,7 +478,7 @@ window.Quarto = {
 <span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>    s_m2 <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="dv">1</span>, s_m2)</span>
 <span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Draw realized stop co-occurrences using Fisher's Noncentral Hypergeometric</span></span>
-<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>    s_k <span class="ot">&lt;-</span> <span class="fu">rFNCHypergeo</span>(<span class="dv">1</span>, s_m1, S_total <span class="sc">-</span> s_m1, s_m2, local_omega)</span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>    s_k <span class="ot">&lt;-</span> <span class="fu">rFNCHypergeo</span>(<span class="dv">1</span>, s_m1, S_total <span class="sc">-</span> s_m1, s_m2, local_alpha)</span>
 <span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Wrap it up in the list</span></span>
 <span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>    datalist[[counter]] <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
@@ -452,12 +497,12 @@ window.Quarto = {
 <span id="cb21-56"><a href="#cb21-56" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>        route_id pair_id S_total m1_stops m2_stops k_stops
-1 Pair_1_Route_1       1      50       13       34      12
-2 Pair_1_Route_2       1      50       19       11       9
-3 Pair_1_Route_3       1      50       10       31      10
-4 Pair_1_Route_4       1      50        9        2       1
-5 Pair_1_Route_5       1      50       18       14       8
-6 Pair_1_Route_6       1      50       24       33      21</code></pre>
+1 Pair_1_Route_1       1      50       13       34       9
+2 Pair_1_Route_2       1      50       19       11       6
+3 Pair_1_Route_3       1      50       10       31       8
+4 Pair_1_Route_4       1      50        9        2       0
+5 Pair_1_Route_5       1      50       18       14       4
+6 Pair_1_Route_6       1      50       24       33      17</code></pre>
 </div>
 </div>
 <p>Finally, we join our <code>data</code> with the generated parameters for each pair we already have in <code>route_data</code>.</p>
@@ -475,12 +520,12 @@ window.Quarto = {
 <span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(stop_data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  pair_id       route_id S_total m1_stops m2_stops k_stops   res_div   hab_pref
-1       1 Pair_1_Route_1      50       13       34      12 0.5941965 -0.4349607
-2       1 Pair_1_Route_2      50       19       11       9 0.5941965 -0.4349607
-3       1 Pair_1_Route_3      50       10       31      10 0.5941965 -0.4349607
-4       1 Pair_1_Route_4      50        9        2       1 0.5941965 -0.4349607
-5       1 Pair_1_Route_5      50       18       14       8 0.5941965 -0.4349607
-6       1 Pair_1_Route_6      50       24       33      21 0.5941965 -0.4349607
+1       1 Pair_1_Route_1      50       13       34       9 0.5941965 -0.4349607
+2       1 Pair_1_Route_2      50       19       11       6 0.5941965 -0.4349607
+3       1 Pair_1_Route_3      50       10       31       8 0.5941965 -0.4349607
+4       1 Pair_1_Route_4      50        9        2       0 0.5941965 -0.4349607
+5       1 Pair_1_Route_5      50       18       14       4 0.5941965 -0.4349607
+6       1 Pair_1_Route_6      50       24       33      17 0.5941965 -0.4349607
         prod  sympatry
 1 -0.1926103 0.8118863
 2 -0.1926103 0.8118863
@@ -492,19 +537,38 @@ window.Quarto = {
 </div>
 </section>
 </section>
-</section>
 <section id="models" class="level1">
 <h1>Models</h1>
-<p>We have prepared our data and now we can run some models using the <code>ulam()</code> function from <code>rethinking</code> package. There are several steps we need to take to get the output:</p>
+<p>We have prepared our data and can now run some models using the <code>ulam()</code> function from the <code>rethinking</code> package. There are several steps we need to take to get the output:</p>
 <ol type="1">
-<li><p>Wrap up data into list, so <code>ulam</code> can read it</p></li>
-<li><p>Import the separate file for Fishers’s non-central hypergeometric likelihood.</p></li>
+<li><p>Wrap up the data into a list so that <code>ulam</code> can read it.</p></li>
+<li><p>Import the separate file for Fisher’s non-central hypergeometric likelihood function.</p></li>
 <li><p>Set up the model formula in <code>ulam</code>.</p></li>
 <li><p>Transform the code into stan syntax.</p></li>
 <li><p>Run the model using <code>stan()</code> function from <code>rstan</code> package.</p></li>
 </ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Box 2
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<p>The mathematical engine of this analysis is the custom <strong>Fisher’s Non-Central Hypergeometric Log Probability Mass Function (<code>fisher_hyper_lpmf</code>)</strong>. Unlike a standard hypergeometric distribution, which assumes species are sorted completely at random, this distribution accounts for ecological attraction or repulsion via an odds-ratio parameter.</p>
+<p>The function first calculates the absolute physical boundaries of co-occurrence (<span class="math inline">\(k\)</span>) allowed by the individual species’ occupancy counts (<span class="math inline">\(m_1, m_2\)</span>) within the total sampled sites (<span class="math inline">\(N\)</span>): <span class="math display">\[k_{\min} = \max(0, m_1 + m_2 - N)\]</span> <span class="math display">\[k_{\max} = \min(m_1, m_2)\]</span></p>
+<p>If an observed or sampled co-occurrence count falls outside this range (<span class="math inline">\(k &lt; k_{\min}\)</span> or <span class="math inline">\(k &gt; k_{\max}\)</span>), the function returns <span class="math inline">\(-\infty\)</span>, assigning it a probability of 0 and rendering that parameter space impossible for the MCMC sampler.</p>
+</div>
+</div>
+</div>
 <section id="route-scale-model" class="level2">
 <h2 class="anchored" data-anchor-id="route-scale-model">Route Scale Model</h2>
+<p>For each route <span class="math inline">\(i\)</span> out of <span class="math inline">\(N\)</span>, the co-occurrence affinity (<span class="math inline">\(α\)</span>) is the log-odds ratio of given parameters:</p>
+<p><span class="math display">\[\text{log}(\alpha_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}\]</span></p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>dat_list <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">k =</span> route_data<span class="sc">$</span>k,</span>
@@ -528,17 +592,17 @@ window.Quarto = {
 <span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">ulam</span>(</span>
 <span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">alist</span>(</span>
 <span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Likelihood</span></span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    k <span class="sc">~</span> <span class="fu">custom</span>( <span class="fu">fisher_hyper_lpmf</span>(k[i] <span class="sc">|</span> <span class="fu">exp</span>(log_omega[i]), m1[i], m2[i], N[i]) ),</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    k <span class="sc">~</span> <span class="fu">custom</span>( <span class="fu">fisher_hyper_lpmf</span>(k[i] <span class="sc">|</span> <span class="fu">exp</span>(log_alpha[i]), m1[i], m2[i], N[i]) ),</span>
 <span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Linear Predictor</span></span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>    log_omega <span class="ot">&lt;-</span> b0 <span class="sc">+</span> b_res<span class="sc">*</span>res_div <span class="sc">+</span> b_hab<span class="sc">*</span>hab_pref <span class="sc">+</span> b_prod<span class="sc">*</span>prod <span class="sc">+</span> b_sym<span class="sc">*</span>sympatry,</span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>    log_alpha <span class="ot">&lt;-</span> b0 <span class="sc">+</span> b_res<span class="sc">*</span>res_div <span class="sc">+</span> b_hab<span class="sc">*</span>hab_pref <span class="sc">+</span> b_prod<span class="sc">*</span>prod <span class="sc">+</span> b_sym<span class="sc">*</span>sympatry,</span>
 <span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Priors</span></span>
-<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>    b0 <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>    b_res <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>    b_hab <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>    b_sym <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>    b_prod <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>    b0 <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>    b_res <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>    b_hab <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>    b_sym <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>    b_prod <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>)</span>
 <span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a>  ), </span>
 <span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> dat_list, </span>
 <span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample =</span> <span class="cn">FALSE</span> <span class="co"># Generate text for stan, not sampling yet</span></span>
@@ -565,16 +629,16 @@ parameters{
     real b_prod;
 }
 model{
-    vector[100] log_omega;
-    b_prod ~ normal( 0 , 10 );
-    b_sym ~ normal( 0 , 10 );
-    b_hab ~ normal( 0 , 10 );
-    b_res ~ normal( 0 , 10 );
-    b0 ~ normal( 0 , 10 );
+    vector[100] log_alpha;
+    b_prod ~ normal( 0 , 3 );
+    b_sym ~ normal( 0 , 3 );
+    b_hab ~ normal( 0 , 3 );
+    b_res ~ normal( 0 , 3 );
+    b0 ~ normal( 0 , 3 );
     for ( i in 1:100 ) {
-        log_omega[i] = b0 + b_res * res_div[i] + b_hab * hab_pref[i] + b_prod * prod[i] + b_sym * sympatry[i];
+        log_alpha[i] = b0 + b_res * res_div[i] + b_hab * hab_pref[i] + b_prod * prod[i] + b_sym * sympatry[i];
     }
-    for ( i in 1:100 ) target += fisher_hyper_lpmf(k[i] | exp(log_omega[i]), m1[i], m2[i], N[i]);
+    for ( i in 1:100 ) target += fisher_hyper_lpmf(k[i] | exp(log_alpha[i]), m1[i], m2[i], N[i]);
 }</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Paste the file-loaded functions block to the top of the text string</span></span>
@@ -590,9 +654,6 @@ model{
 <span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1</span>,</span>
 <span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">refresh =</span> <span class="dv">0</span> <span class="co"># &lt;--- Turns off the iteration progress tracker</span></span>
 <span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Trying to compile a simple C file</code></pre>
-</div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Running /usr/lib64/R/bin/R CMD SHLIB foo.c
 using C compiler: ‘gcc (GCC) 16.1.1 20260515 (Red Hat 16.1.1-2)’
@@ -608,9 +669,9 @@ compilation terminated.
 make: *** [/usr/lib64/R/etc/Makeconf:190: foo.o] Error 1</code></pre>
 </div>
 </div>
-<p>First we can check the convergence of chains.</p>
+<p>First, we can check the convergence of chains.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">traceplot</span>(out_routes, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"b0"</span>, <span class="st">"b_res"</span>, <span class="st">"b_hab"</span>, <span class="st">"b_sym"</span>, <span class="st">"b_prod"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">traceplot</span>(out_routes, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"b0"</span>, <span class="st">"b_res"</span>, <span class="st">"b_hab"</span>, <span class="st">"b_sym"</span>, <span class="st">"b_prod"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -621,77 +682,77 @@ make: *** [/usr/lib64/R/etc/Makeconf:190: foo.o] Error 1</code></pre>
 </div>
 <p>All chains have converged nicely!</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">precis</span>(out_routes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">precis</span>(out_routes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>             mean         sd       5.5%      94.5%    n_eff     Rhat4
-b0      0.3797709 0.07648920  0.2563096  0.5016932 8573.136 1.0004611
-b_res   0.8914481 0.10044652  0.7307682  1.0566961 7909.408 0.9996981
-b_hab  -0.6040503 0.08712240 -0.7423327 -0.4645172 7765.985 0.9998471
-b_sym   1.3184583 0.10237006  1.1538197  1.4821185 7813.428 0.9996734
-b_prod  0.3615129 0.07695595  0.2390126  0.4822153 8482.359 0.9999758</code></pre>
+b0      0.3582465 0.07230623  0.2418399  0.4736279 9850.600 1.0000724
+b_res  -0.6132714 0.08866470 -0.7567416 -0.4732227 9564.958 1.0000689
+b_hab   0.6017444 0.07958752  0.4754443  0.7299208 8591.087 1.0003916
+b_sym   0.8671269 0.08740654  0.7270197  1.0069389 9602.013 0.9998288
+b_prod  0.3194884 0.07220552  0.2047892  0.4346219 9407.270 1.0001497</code></pre>
 </div>
 </div>
-<p>Our model estimates for most parameters are very good, however the intercept (baseline log-odds ratio) is a bit underestimated despite the credible interval includes the true value (0.5).</p>
+<p>Our model estimates for most parameters are very good; the intercept mean (baseline log-odds ratio) is slightly underestimated, despite the credible interval including the true value (0.5).</p>
 </section>
 <section id="stop-scale-model" class="level2">
 <h2 class="anchored" data-anchor-id="stop-scale-model">Stop Scale Model</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Map character route IDs to sequential integers for Stan indexing</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>stop_data<span class="sc">$</span>route_index <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">as.factor</span>(stop_data<span class="sc">$</span>route_id))</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>dat_list_stops <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">k_stops     =</span> stop_data<span class="sc">$</span>k_stops,</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">m1_stops    =</span> stop_data<span class="sc">$</span>m1_stops,</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">m2_stops    =</span> stop_data<span class="sc">$</span>m2_stops,</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">S_total     =</span> stop_data<span class="sc">$</span>S_total,</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">res_div     =</span> stop_data<span class="sc">$</span>res_div,</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">hab_pref    =</span> stop_data<span class="sc">$</span>hab_pref,</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">prod        =</span> stop_data<span class="sc">$</span>prod,</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">sympatry    =</span> stop_data<span class="sc">$</span>sympatry,</span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">route_index =</span> stop_data<span class="sc">$</span>route_index</span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Model Settings</span></span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>model_stops <span class="ot">&lt;-</span> <span class="fu">ulam</span>(</span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">alist</span>(</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Likelihood using stop-level data arrays</span></span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    k_stops <span class="sc">~</span> <span class="fu">custom</span>( <span class="fu">fisher_hyper_lpmf</span>(k_stops[i] <span class="sc">|</span> <span class="fu">exp</span>(log_omega[i]), m1_stops[i], m2_stops[i], S_total[i]) ),</span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Linear Predictor: Pair baseline + Route random effect deviation</span></span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>log_omega <span class="ot">&lt;-</span> b0 <span class="sc">+</span> b_res<span class="sc">*</span>res_div <span class="sc">+</span> b_hab<span class="sc">*</span>hab_pref <span class="sc">+</span> b_prod<span class="sc">*</span>prod <span class="sc">+</span> b_sym<span class="sc">*</span>sympatry <span class="sc">+</span> (z_route[route_index] <span class="sc">*</span> sigma_route),</span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fixed Effect Priors</span></span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    b0 <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>    b_res <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>    b_hab <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    b_sym <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    b_prod <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">10</span>),</span>
-<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Adaptive Priors</span></span>
-<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Non-Centered Random Effect Layer</span></span>
-<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    <span class="co"># z_route is a completely standard, clean vector array</span></span>
-<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    z_route[route_index] <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
-<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    sigma_route <span class="sc">~</span> <span class="fu">dexp</span>(<span class="dv">1</span>)</span>
-<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># exponential distribution forces sigma_route</span></span>
-<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to be strictly positive (since a standard deviation cannot be negative)</span></span>
-<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>  ), </span>
-<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> dat_list_stops, </span>
-<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample =</span> <span class="cn">FALSE</span> <span class="co"># Generate text for stan, not sampling yet</span></span>
-<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the autogenerated text</span></span>
-<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>stan_code_stops <span class="ot">&lt;-</span> <span class="fu">stancode</span>(model_stops)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Map character route IDs to sequential integers for Stan indexing</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>stop_data<span class="sc">$</span>route_index <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">as.factor</span>(stop_data<span class="sc">$</span>route_id))</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>dat_list_stops <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">k_stops     =</span> stop_data<span class="sc">$</span>k_stops,</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">m1_stops    =</span> stop_data<span class="sc">$</span>m1_stops,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">m2_stops    =</span> stop_data<span class="sc">$</span>m2_stops,</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">S_total     =</span> stop_data<span class="sc">$</span>S_total,</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">res_div     =</span> stop_data<span class="sc">$</span>res_div,</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">hab_pref    =</span> stop_data<span class="sc">$</span>hab_pref,</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">prod        =</span> stop_data<span class="sc">$</span>prod,</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">sympatry    =</span> stop_data<span class="sc">$</span>sympatry,</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">route_index =</span> stop_data<span class="sc">$</span>route_index</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Model Settings</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>model_stops <span class="ot">&lt;-</span> <span class="fu">ulam</span>(</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">alist</span>(</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Likelihood using stop-level data arrays</span></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    k_stops <span class="sc">~</span> <span class="fu">custom</span>( <span class="fu">fisher_hyper_lpmf</span>(k_stops[i] <span class="sc">|</span> <span class="fu">exp</span>(log_omega[i]), m1_stops[i], m2_stops[i], S_total[i]) ),</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Linear Predictor: Pair baseline + Route random effect deviation</span></span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>log_omega <span class="ot">&lt;-</span> b0 <span class="sc">+</span> b_res<span class="sc">*</span>res_div <span class="sc">+</span> b_hab<span class="sc">*</span>hab_pref <span class="sc">+</span> b_prod<span class="sc">*</span>prod <span class="sc">+</span> b_sym<span class="sc">*</span>sympatry <span class="sc">+</span> (z_route[route_index] <span class="sc">*</span> sigma_route),</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fixed Effect Priors</span></span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>   b0 <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>    b_res <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>    b_hab <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a>    b_sym <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a>    b_prod <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Adaptive Priors</span></span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Non-Centered Random Effect Layer</span></span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a>    <span class="co"># z_route is a completely standard, clean vector array</span></span>
+<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a>    z_route[route_index] <span class="sc">~</span> <span class="fu">dnorm</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
+<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a>    sigma_route <span class="sc">~</span> <span class="fu">dexp</span>(<span class="dv">1</span>)</span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># exponential distribution forces sigma_route</span></span>
+<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to be strictly positive (since a standard deviation cannot be negative)</span></span>
+<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a>  ), </span>
+<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> dat_list_stops, </span>
+<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample =</span> <span class="cn">FALSE</span> <span class="co"># Generate text for stan, not sampling yet</span></span>
+<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-43"><a href="#cb32-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-44"><a href="#cb32-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the autogenerated text</span></span>
+<span id="cb32-45"><a href="#cb32-45" aria-hidden="true" tabindex="-1"></a>stan_code_stops <span class="ot">&lt;-</span> <span class="fu">stancode</span>(model_stops)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>data{
-    int S_total[829];
-    int m2_stops[829];
-    int m1_stops[829];
-    int k_stops[829];
-    int route_index[829];
-    vector[829] sympatry;
-    vector[829] prod;
-    vector[829] hab_pref;
-    vector[829] res_div;
+    int S_total[863];
+    int m2_stops[863];
+    int m1_stops[863];
+    int k_stops[863];
+    int route_index[863];
+    vector[863] sympatry;
+    vector[863] prod;
+    vector[863] hab_pref;
+    vector[863] res_div;
 }
 parameters{
     real b0;
@@ -699,40 +760,37 @@ parameters{
     real b_hab;
     real b_sym;
     real b_prod;
-    vector[829] z_route;
+    vector[863] z_route;
     real&lt;lower=0&gt; sigma_route;
 }
 model{
-    vector[829] log_omega;
+    vector[863] log_omega;
     sigma_route ~ exponential( 1 );
     z_route ~ normal( 0 , 1 );
-    b_prod ~ normal( 0 , 10 );
-    b_sym ~ normal( 0 , 10 );
-    b_hab ~ normal( 0 , 10 );
-    b_res ~ normal( 0 , 10 );
-    b0 ~ normal( 0 , 10 );
-    for ( i in 1:829 ) {
+    b_prod ~ normal( 0 , 3 );
+    b_sym ~ normal( 0 , 3 );
+    b_hab ~ normal( 0 , 3 );
+    b_res ~ normal( 0 , 3 );
+    b0 ~ normal( 0 , 3 );
+    for ( i in 1:863 ) {
         log_omega[i] = b0 + b_res * res_div[i] + b_hab * hab_pref[i] + b_prod * prod[i] + b_sym * sympatry[i] + (z_route[route_index[i]] * sigma_route);
     }
-    for ( i in 1:829 ) target += fisher_hyper_lpmf(k_stops[i] | exp(log_omega[i]), m1_stops[i], m2_stops[i], S_total[i]);
+    for ( i in 1:863 ) target += fisher_hyper_lpmf(k_stops[i] | exp(log_omega[i]), m1_stops[i], m2_stops[i], S_total[i]);
 }</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Paste the file-loaded functions block to the top of the text string</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>full_stan_code_stops <span class="ot">&lt;-</span> <span class="fu">paste0</span>(likelihood_pmf, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>, stan_code_stops)</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the compiled model using rstan</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>out_stops <span class="ot">&lt;-</span> <span class="fu">stan</span>(</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">model_code =</span> full_stan_code_stops,</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> dat_list_stops,</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, </span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">cores =</span> <span class="dv">4</span>,</span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">iter =</span> <span class="dv">4000</span>,</span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1</span>,</span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">refresh =</span> <span class="dv">0</span> <span class="co"># &lt;--- Turns off the iteration progress tracker</span></span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Trying to compile a simple C file</code></pre>
-</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Paste the file-loaded functions block to the top of the text string</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>full_stan_code_stops <span class="ot">&lt;-</span> <span class="fu">paste0</span>(likelihood_pmf, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>, stan_code_stops)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the compiled model using rstan</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>out_stops <span class="ot">&lt;-</span> <span class="fu">stan</span>(</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">model_code =</span> full_stan_code_stops,</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> dat_list_stops,</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, </span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">cores =</span> <span class="dv">4</span>,</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">iter =</span> <span class="dv">4000</span>,</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1</span>,</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">refresh =</span> <span class="dv">0</span> <span class="co"># &lt;--- Turns off the iteration progress tracker</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Running /usr/lib64/R/bin/R CMD SHLIB foo.c
 using C compiler: ‘gcc (GCC) 16.1.1 20260515 (Red Hat 16.1.1-2)’
@@ -747,18 +805,10 @@ In file included from /usr/local/lib/R/library/RcppEigen/include/Eigen/Core:19,
 compilation terminated.
 make: *** [/usr/lib64/R/etc/Makeconf:190: foo.o] Error 1</code></pre>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 11 divergent transitions after warmup. See
-https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-to find out why this is a problem and how to eliminate them.</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
-</div>
 </div>
 <p>There were several warnings at the and of the sampling, that some chains did not converged in an optimal way so we first check the traceplot for the main parameters.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">traceplot</span>(out_stops, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"b0"</span>, <span class="st">"b_res"</span>, <span class="st">"b_hab"</span>, <span class="st">"b_sym"</span>, <span class="st">"b_prod"</span>, <span class="st">"sigma_route"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">traceplot</span>(out_stops, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"b0"</span>, <span class="st">"b_res"</span>, <span class="st">"b_hab"</span>, <span class="st">"b_sym"</span>, <span class="st">"b_prod"</span>, <span class="st">"sigma_route"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -769,90 +819,91 @@ to find out why this is a problem and how to eliminate them.</code></pre>
 </div>
 <p>Now we can take a look at the parameter estimates.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">precis</span>(out_stops, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"b0"</span>, <span class="st">"b_res"</span>, <span class="st">"b_hab"</span>, <span class="st">"b_sym"</span>, <span class="st">"b_prod"</span>, <span class="st">"sigma_route"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">precis</span>(out_stops, <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"b0"</span>, <span class="st">"b_res"</span>, <span class="st">"b_hab"</span>, <span class="st">"b_sym"</span>, <span class="st">"b_prod"</span>, <span class="st">"sigma_route"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>                  mean         sd         5.5%      94.5%    n_eff     Rhat4
-b0           0.4914130 0.03593647  0.433368328  0.5483089 9954.977 0.9997783
-b_res        0.7369161 0.05193330  0.655697381  0.8204906 7268.419 0.9999665
-b_hab       -0.5730724 0.05011390 -0.653980950 -0.4933729 6897.536 1.0002783
-b_sym        1.1601926 0.04767985  1.085454594  1.2364770 6729.634 0.9997315
-b_prod       0.2655695 0.03734475  0.205460163  0.3241546 8659.445 0.9999193
-sigma_route  0.1064493 0.07213549  0.009861541  0.2348612 1690.502 1.0017635</code></pre>
+<pre><code>                  mean         sd        5.5%      94.5%     n_eff     Rhat4
+b0           0.4543644 0.03759864  0.39434449  0.5146128 10464.220 0.9998190
+b_res       -0.7317836 0.04848148 -0.80915290 -0.6540202 10017.346 0.9998101
+b_hab        0.5384470 0.04554139  0.46735185  0.6115844  9533.575 0.9997974
+b_sym        0.7839105 0.04056822  0.71837233  0.8494715  9553.626 0.9996541
+b_prod       0.3450701 0.03649902  0.28670809  0.4030437  9396.012 0.9998799
+sigma_route  0.1630246 0.09246164  0.02008986  0.3101307  1283.183 1.0009160</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract posterior sample draws</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>post_stops <span class="ot">&lt;-</span> <span class="fu">extract.samples</span>(out_stops)</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>n_samples  <span class="ot">&lt;-</span> <span class="fu">length</span>(post_stops<span class="sc">$</span>b0)</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>n_rows     <span class="ot">&lt;-</span> <span class="fu">nrow</span>(stop_data)</span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Create an empty matrix to hold log-odds (rows = post-samples, cols = stop_data rows)</span></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>log_omega_routes <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA</span>, <span class="at">nrow =</span> n_samples, <span class="at">ncol =</span> n_rows)</span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Reconstruct log_omega per transect by pulling pair fixed effects and adding local random noise</span></span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_rows) {</span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  pair_base <span class="ot">&lt;-</span> post_stops<span class="sc">$</span>b0 <span class="sc">+</span> </span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_res <span class="sc">*</span> stop_data<span class="sc">$</span>res_div[i] <span class="sc">+</span> </span>
-<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_hab <span class="sc">*</span> stop_data<span class="sc">$</span>hab_pref[i] <span class="sc">+</span> </span>
-<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_sym <span class="sc">*</span> stop_data<span class="sc">$</span>sympatry[i] <span class="sc">+</span> </span>
-<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_prod <span class="sc">*</span> stop_data<span class="sc">$</span>prod[i]</span>
-<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Manually reconstruct the route deviation from the non-centered samples</span></span>
-<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>  current_route_idx <span class="ot">&lt;-</span> stop_data<span class="sc">$</span>route_index[i]</span>
-<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>  reconstructed_a_route <span class="ot">&lt;-</span> post_stops<span class="sc">$</span>z_route[, current_route_idx] <span class="sc">*</span> post_stops<span class="sc">$</span>sigma_route</span>
-<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Total local log-odds ratio</span></span>
-<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>  log_omega_routes[, i] <span class="ot">&lt;-</span> pair_base <span class="sc">+</span> reconstructed_a_route</span>
-<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Compute and assign the estimated log-odds ratio back to each individual transect row</span></span>
-<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a>stop_data<span class="sc">$</span>estimated_local_log_OR <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(log_omega_routes)</span>
-<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Average the estimated log-odds values for each distinct pair_id</span></span>
-<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a>pair_level_averages <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(estimated_local_log_OR <span class="sc">~</span> pair_id, <span class="at">data =</span> stop_data, <span class="at">FUN =</span> mean)</span>
-<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">head</span>(pair_level_averages))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract posterior sample draws</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>post_stops <span class="ot">&lt;-</span> <span class="fu">extract.samples</span>(out_stops)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>n_samples  <span class="ot">&lt;-</span> <span class="fu">length</span>(post_stops<span class="sc">$</span>b0)</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>n_rows     <span class="ot">&lt;-</span> <span class="fu">nrow</span>(stop_data)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Create an empty matrix to hold log-odds (rows = post-samples, cols = stop_data rows)</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>log_omega_routes <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA</span>, <span class="at">nrow =</span> n_samples, <span class="at">ncol =</span> n_rows)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Reconstruct log_omega per transect by pulling pair fixed effects and adding local random noise</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_rows) {</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>  pair_base <span class="ot">&lt;-</span> post_stops<span class="sc">$</span>b0 <span class="sc">+</span> </span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_res <span class="sc">*</span> stop_data<span class="sc">$</span>res_div[i] <span class="sc">+</span> </span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_hab <span class="sc">*</span> stop_data<span class="sc">$</span>hab_pref[i] <span class="sc">+</span> </span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_sym <span class="sc">*</span> stop_data<span class="sc">$</span>sympatry[i] <span class="sc">+</span> </span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>               post_stops<span class="sc">$</span>b_prod <span class="sc">*</span> stop_data<span class="sc">$</span>prod[i]</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Manually reconstruct the route deviation from the non-centered samples</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>  current_route_idx <span class="ot">&lt;-</span> stop_data<span class="sc">$</span>route_index[i]</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>  reconstructed_a_route <span class="ot">&lt;-</span> post_stops<span class="sc">$</span>z_route[, current_route_idx] <span class="sc">*</span> post_stops<span class="sc">$</span>sigma_route</span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Total local log-odds ratio</span></span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>  log_omega_routes[, i] <span class="ot">&lt;-</span> pair_base <span class="sc">+</span> reconstructed_a_route</span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Compute and assign the estimated log-odds ratio back to each individual transect row</span></span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>stop_data<span class="sc">$</span>estimated_local_log_OR <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(log_omega_routes)</span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Average the estimated log-odds values for each distinct pair_id</span></span>
+<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>pair_level_averages <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(estimated_local_log_OR <span class="sc">~</span> pair_id, <span class="at">data =</span> stop_data, <span class="at">FUN =</span> mean)</span>
+<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">head</span>(pair_level_averages))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  pair_id estimated_local_log_OR
-1       1              2.0703960
-2       2              0.3208659
-3       3              1.0156663
-4       4              1.1249330
-5       5              0.3499356
-6       6              2.9839751</code></pre>
+1       1              0.3525604
+2       2              0.4577771
+3       3             -0.1714106
+4       4              0.3882701
+5       5              1.8050079
+6       6             -0.3699404</code></pre>
 </div>
 </div>
 <p>We can compare it with the true values of local logOR.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>stop_model_evaluation <span class="ot">&lt;-</span> pair_level_averages <span class="sc">%&gt;%</span> </span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(route_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(pair_id, <span class="at">true_log_OR =</span> log_OR), <span class="at">by =</span> <span class="st">"pair_id"</span>)</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">head</span>(stop_model_evaluation))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>stop_model_evaluation <span class="ot">&lt;-</span> pair_level_averages <span class="sc">%&gt;%</span> </span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(route_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(pair_id, <span class="at">true_log_OR =</span> log_OR), <span class="at">by =</span> <span class="st">"pair_id"</span>)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">head</span>(stop_model_evaluation))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  pair_id estimated_local_log_OR true_log_OR
-1       1              2.0703960   2.1528142
-2       2              0.3208659   0.3554621
-3       3              1.0156663   1.0928971
-4       4              1.1249330   1.1261120
-5       5              0.3499356   0.3605271
-6       6              2.9839751   3.0918484</code></pre>
+1       1              0.3525604  0.41481199
+2       2              0.4577771  0.38359142
+3       3             -0.1714106 -0.01888329
+4       4              0.3882701  0.39641775
+5       5              1.8050079  1.84544738
+6       6             -0.3699404 -0.29678897</code></pre>
 </div>
 </div>
 </section>
-</section>
-<section id="smaller-number-of-sister-pairs-n30" class="level1">
-<h1>Smaller number of sister pairs (n=30)</h1>
 </section>
 <section id="conclusion" class="level1">
 <h1>Conclusion</h1>
 </section>
-<section id="reference" class="level1">
-<h1>Reference</h1>
-<p>Remeš, V. and Harmáčková, L. (2023), Resource use divergence facilitates the evolution of secondary syntopy in a continental radiation of songbirds (Meliphagoidea): insights from unbiased co-occurrence analyses. Ecography, 2023: e06268. https://doi.org/10.1111/ecog.06268</p>
-<p>Newbury, A. (2024). Bayesian estimation of co-occurrence affinity with dyadic regression. bioRxiv. https://doi.org/10.1101/2024.01.16.575941</p>
-<p>Haldane, J. B. S. (1956). <em>The estimation and significance of the logarithm of a ratio of frequencies</em>. Annals of Human Genetics, 20(4), 309-311.</p>
-<p>Anscombe, F. J. (1956). <em>On estimating binomially distributed populations</em>. Biometrika, 43(3/4), 461-464. :::</p>
+<section id="reference" class="level1 unnumbered">
+
+
 </section>
 
-</main>
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Reference</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-newbury" class="csl-entry" role="listitem">
+Newbury, Arthur. n.d. <em>Bayesian Estimation of Co-Occurrence Affinity with Dyadic Regression</em>. <a href="https://doi.org/10.1101/2024.01.16.575941">https://doi.org/10.1101/2024.01.16.575941</a>.
+</div>
+<div id="ref-remes2023" class="csl-entry" role="listitem">
+Remeš, Vladimír, and Lenka Harmáčková. 2023. <span>“Resource Use Divergence Facilitates the Evolution of Secondary Syntopy in a Continental Radiation of Songbirds (Meliphagoidea): Insights from Unbiased Co-Occurrence Analyses.”</span> <em>Ecography</em> 2023 (2): e06268. <a href="https://doi.org/10.1111/ecog.06268">https://doi.org/10.1111/ecog.06268</a>.
+</div>
+</div></section></div></main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {

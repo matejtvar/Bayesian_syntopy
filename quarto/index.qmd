@@ -1,25 +1,71 @@
 ---
 title: "Bayesian Analysis of Syntopy"
+subtitle: "Assignment for Bayesian Statistics Course"
 author: "Matěj Tvarůžka"
 date: "`r Sys.Date()`"
+categories: [Syntopy, Spatial Data, Birds, R, Bayesian Inference]
 format: html
 editor: visual
+bibliography: references.bib
 ---
 
 # Introduction
 
-Following the framework of Remeš & Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master's thesis, where I model syntopy at two spatial scales (routes and stops) using BBS (Breeding Bird Survey) data for passerines and range maps from eBird Status & Trends.
-
-To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw: 1) both species are present, 2) species A is present, 3) species B is present, or 4) both species are missing at the site. To measure the degree of species co-occurrence, we use the log-odds ratio because it centers the odds ratio around zero, making the scale linear.
-
-If we want to model this problem using Bayesian methods, we can follow the approach in Newbury (2024), but we will not include random effects in the model and will use only a simple Bayesian linear regression. The most accurate probability distribution for our problem is **Fisher's non-central hypergeometric distribution**, where *N* denotes the population size (number of sites within the sympatric zone), *K* is the number of co-occurrence states (*K* = 4), *n* is the number of draws, and *k* is the number of co-occurrences. This distribution is accurate because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
+Following the framework of @remes2023, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales (routes and stops) using BBS (Breeding Bird Survey) data for passerines and eBird Status & Trends range maps.
 
 ::: callout-note
-## Goals
+## Assignment Goals
 
-1.  Generate dream data for 100 pairs using Fisher's hypergeometric distribution for both scales (routes and stops).
-2.  Visualize and explore generated data.
-3.  Fit models for both scales using `ulam` function and compare the estimates with true values.
+1.  Generate dream syntopy data for both scales (routes and stops).
+2.  Visualise and explore generated data.
+3.  Fit models for both scales using the `ulam` function and compare the estimates with true values.
+:::
+
+To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis, because otherwise it will lead to biased results @remes2023. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw:
+
+1.  Both species are present,
+2.  Species A is present,
+3.  Species B is present,
+4.  Both species are missing at the site.
+
+If we want to model this problem using Bayesian methods, we can follow the approach in @newbury measuring the degree of species co-occurrence with the log-odds ratio (see box 1). The most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
+
+::: callout-note
+## Box 1: Bayesian Log Odds Ratio
+
+The log-odds ratio serves as the foundational metric to quantify spatial association between sister species. Based on a standard $2 \times 2$ presence-absence matrix ($a$ = both present, $b/c$ = single species present, $d$ = both absent), the empirical calculation is:
+
+$$\log \text{OR}_{\text{}} = \ln\left(\frac{a \times d}{b \times c}\right)$$
+
+In this assignment, we transition away from this traditional empirical formula and instead implement a Bayesian framework. The key distinctions and advantages are:
+
+1.  **Mathematical Formulation:**
+
+    The observed co-occurrence $k_i$ is modelled with Fisher's Hypergeometric distribution representing local survey plots within that site: $$k_i \sim \text{FisherHypergeometric}(m_{1i}, m_{2i}, N_i, \alpha_i)$$
+
+    where:
+
+    - $k_i$ = number of sites where both species co-occur
+
+    - $m_{1i}$ = total number of sites where species A is present for pair $i$
+
+    - $m_{2i}$ = total number of sites where species B is present for pair $i$
+
+    - $N_i$ = total number of sites sampled within the sympatric range of pair $i$
+
+    - $\alpha_i$ = the conditional co-occurrence odds ratio for pair $i$.
+
+    For each site $i$ out of $N$, the co-occurrence affinity ($ω_i$) is the log-odds ratio of given parameters:
+
+    $$\text{log}(\alpha_i) = \beta_{0} + \beta_{1} \cdot X_{1,i} + \lambda_{1,i}$$
+
+2.  **Mathematical Stability:** By evaluating data through the Log Probability Mass Function (LPMF) of Fisher's Non-Central Hypergeometric distribution, our model naturally handles small sample sizes and zero counts. It completely bypasses the need to delete data or inject mathematical bandages.
+
+3.  **Symmetric Linear Predictors:** Taking the natural logarithm maps highly asymmetric raw odds ratios onto a continuous linear space from $-\infty$ to $+\infty$, centering independent sorting perfectly at $0$ ($>0$ is syntopy, $<0$ is segregation). This allows our ecological parameters ($\beta_{\text{res}}$, $\beta_{\text{hab}}$, etc.) to be added together seamlessly.
+
+4.  **Information Pooling:** Unlike the typical formula, which treats every route as an isolated island, our hierarchical structure links local routes together. If a specific route has noisy counts, the model performs **partial pooling**—shrinking its local estimate back toward the regional baseline dictated by the environmental covariates.
+
+5.  **Prevalence Invariance:** Unlike traditional similarity indices (e.g., Jaccard, Simpson), this metric standardises for baseline regional abundance, therefore isolates true ecological affinity without being biased by widespread or ubiquitous species.
 :::
 
 # Data Simulation
@@ -28,47 +74,21 @@ To satisfy the assignment's complexity requirements, I define **5 true parameter
 
 - $\beta_{0} = 0.5$ (Baseline log-odds of co-occurrence; slight facilitation)
 
-- $\beta_{res.div} = 0.8$ (Resource use divergence: greater divergence increases syntopy)
+- $\beta_{res.div} = -0.7$ (Resource use divergence: greater divergence increases syntopy)
 
-- $\beta_{hab.pref} = -0.6$ (Difference in micro-habitat and environmental preference decreases syntopy)
+- $\beta_{hab.pref} = 0.6$ (Difference in micro-habitat and environmental preference decreases syntopy)
 
 - $\beta_{prod} = 0.3$ (Environmental productivity (e.g., NDVI): richer environments support co-occurrence)
 
-- $\beta_{sympatry} = 1.2$ (Spatial overlap: regional overlap strongly increases syntopy)
+- $\beta_{sympatry} = 0.8$ (Spatial overlap: regional overlap strongly increases syntopy)
 
-## Fishers' Hypergeometric Distribution
-
-### Mathematical Formulation
-
-For each site $i$ out of $N$, the co-occurrence affinity ($α$) is the log-odds ratio of given parameters:
-
-$$\text{log}(ω_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}$$
-
-The observed co-occurrence $k_i$ is modeled with **Fisher's Hypergeometric distribution** representing local survey plots within that site:
-
-$$k_i \sim \text{FisherHypergeometric}(m_{1i},m_{2i}, N_i, ω_i)$$
-
-where:
-
-- $k_i$ = number of sites where both species co-occur
-
-- $m_{1i}$ = total number of sites where species A is present for pair $i$
-
-- $m_{2i}$ = total number of sites where species B is present for pair $i$
-
-- $N_i$ = total number of sites sampled within the sympatric range of pair $i$
-
-- $ω_i$ = the conditional co-occurrence odds ratio for pair $i$
-
-## Data Generation
-
-I want to simulate data resembling the study design of BBS (\~40km long routes, each having 50 stops). Therefore I need to create two data sets:
+I want to simulate data that resembles the BBS study design (\~40 km-long routes, each with 50 stops). Therefore, I need to create two data sets:
 
 1\) route scale (looking at syntopy across transects within the range overlap)
 
 2\) stop scale (looking at syntopy within transects)
 
-For the Fisher's hypergeometric distribution we can use the library `BiasedUrn`, for the modeling we will use `rethinking` and `rstan`.
+For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn` library, and for the modelling, we will use libraries `rethinking` and `rstan`.
 
 ```{r}
 #| include: false
@@ -79,9 +99,9 @@ library(tidyverse)
 set.seed(1)
 ```
 
-### Route Scale
+## Route Scale
 
-For the number of sites I choose a negative binomial distribution, because it is an integer and I know that there is a long tail on the right site of the distribution.
+For the number of sites, I choose a negative binomial distribution because it is integer-valued and has a long right tail.
 
 ```{r}
 #| label: Route Scale Data Simulation
@@ -104,7 +124,7 @@ route_oc <- route_occupancy(num_pairs = num_pairs)
 hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="purple")
 ```
 
-Some species pairs have very large number of sampled sites, while some of them have just a few sampled sites within the sympatric range. We can check the parameters of the distribution:
+Some species pairs have a very large number of sampled sites, while others have just a few within the sympatric range. We can check the parameters of the distribution:
 
 ```{r}
 summary(route_oc$N)
@@ -116,7 +136,7 @@ We can also check the occupancy distribution of the first species set in the pai
 hist(route_oc$m1, breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="red")
 ```
 
-This plot nicely resembles species abundance distribution, so if we take a logarithm of it it should be close to normal distribution.
+This plot resembles a species abundance distribution, so if we take the logarithm of it, it should be close to a normal distribution.
 
 ```{r}
 hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="red")
@@ -124,7 +144,7 @@ hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Numbe
 
 It is exactly like that!
 
-Let's continue with the generation of parameter values. First I will generate three already standardized variables using normal distribution.
+Let us continue with parameter generation. First, I will generate three already standardised variables using the normal distribution.
 
 ```{r}
 X_res_div   <- rnorm(num_pairs, mean = 0, sd = 1) # X1
@@ -133,7 +153,7 @@ X_prod      <- rnorm(num_pairs, mean = 0, sd = 1) # X3
 hist(X_res_div, breaks = 12, main="Resource Use Divergence", xlab="Degree of divergence", col="orange")
 ```
 
-For the degree of sympatry (% of range overlap) I need to generate specific distribution as x \> 5 (minimum degree for sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit I have to use beta distribution.
+Let us continue with parameter generation. First, I will generate three already standardised variables using the normal distribution. For the degree of sympatry (% of range overlap), I need to generate a distribution with x \> 5 (the minimum degree of sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit, I have to use a beta distribution.
 
 ```{r}
 raw_beta <- rbeta(num_pairs, shape1 = 2, shape2 =3)
@@ -143,41 +163,41 @@ sympatry <- sym_min + (raw_beta - min(raw_beta)) * (symp_max - sym_min) / (max(r
 hist(sympatry, breaks = 12, main="Degree of Sympatry", xlab="Range overlap (%)", col="darkseagreen3")
 ```
 
-We can see that most of the pairs have a high degree of sympatry and few pairs have very low values. Now we have to standardize it prior to modeling.
+We can see that most pairs have a high degree of sympatry, while a few have very low values. Now we have to standardise it prior to modelling.
 
 ```{r}
 #| label: Parameter X4
 X_sympatry <- (sympatry - mean(sympatry)) / sd(sympatry) # X3
-hist(X_sympatry, breaks = 12, main="zSympatry (Standardized)", xlab="Z-score", col="steelblue")
+hist(X_sympatry, breaks = 12, main="zSympatry (Standardised)", xlab="Z-score", col="steelblue")
 ```
 
-Now we set the "true" values for the parameters in our made-up universe.
+Now we set the "true" parameter values in our made-up universe.
 
 ```{r}
 #| label: True Parameters
 beta_0        <- 0.5
-beta_res_div  <- 0.8
-beta_hab_pref <- -0.6
-beta_sympatry <- 1.2
+beta_res_div  <- -0.7
+beta_hab_pref <- 0.6
+beta_sympatry <- 0.8
 beta_prod     <- 0.3
 ```
 
-Next step is the calculation of linear combination of parameters and we exponentiate the log-odds to get simple odds ratio.
+The next step is to calculate a linear combination of parameters, and we exponentiate the log-odds to obtain a simple odds ratio.
 
 ```{r}
-#| label: Odds Ratio
-log_omega <- beta_0 + 
+#| label: Linear Combination of True Parameters
+log_alpha <- beta_0 + 
              beta_res_div  * X_res_div + 
              beta_hab_pref * X_hab_pref + 
              beta_sympatry * X_sympatry + 
              beta_prod     * X_prod
-omega <- exp(log_omega)
+alpha <- exp(log_alpha) # Odds Ratio
 ```
 
-With this settled up, we calculate the linear predictor for each pair using `BiasedUrn` library.
+With this settled, we calculate the linear predictor for each pair using the `BiasedUrn` library.
 
 ```{r}
-#| label: Simulation of co-occurrence
+#| label: Simulation of Co-occurrence
 m1 <- route_oc$m1
 m2 <- route_oc$m2
 k <- integer(num_pairs)
@@ -188,12 +208,12 @@ for(i in 1:num_pairs) {
     k[i] <- 0
   } else {
     # rFNCHypergeo(n_samples, m1, m2, total_draws, odds)
-    k[i] <- rFNCHypergeo(1, route_oc$m1[i], route_oc$N[i] - route_oc$m1[i], route_oc$m2[i], omega[i])
+    k[i] <- rFNCHypergeo(1, route_oc$m1[i], route_oc$N[i] - route_oc$m1[i], route_oc$m2[i], alpha[i])
   }
 }
 ```
 
-Let's pack it up into data.frame and take a look at the data.
+Let us pack it up into `data.frame` and take a look at the data.
 
 ```{r}
 #| label: Route Scale Data Final
@@ -206,7 +226,7 @@ route_data <- data.frame(
 head(route_data)
 ```
 
-The data.frame looks good and we should now explore the data before proceeding into next stage.
+The `data.frame` looks good, and we should now explore the data before proceeding to the next stage.
 
 ```{r}
 #| label: Route Scale Data Exploration & Wrangling
@@ -216,23 +236,21 @@ route_data[abs(route_data$m1 - route_data$m2) >100,]
 # There are 4 pairs with a very high difference in occupancy between species
 ```
 
-Higher abundance among sister pairs (e.g. 80 occupied routes from 100, together at 64) can lead to the situation when both species in the pair tend to co-occur more likely simply because they are present everywhere - therefore their co-occurrence affinity will be incomparable with the species which co-occur despite being rare in general (e.g. 5 routes from 100, together at 4).
-
-This problem of prevalence can happen if we measure co-occurrence with widely used indices of similarity (e.g., Jaccard, Simpson). Bayesian inference elegantly solves this problem as it proportionately weights the relative abundances of species.
+Now we have to make an unique id for each pair to be able to link it later with stops data.
 
 ```{r}
 # Add unique IDs, true odds ratio and true log-odds ratio
 route_data$pair_id <- 1:nrow(route_data)
-route_data$OR <- omega
-route_data$log_OR <- log_omega
+route_data$OR <- alpha
+route_data$log_OR <- log_alpha
 route_data[route_data$m1 == 0 & route_data$m2 == 0,]
 ```
 
-There are 2 routes with zero occupancy, so called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives) or they were not detected during the survey (false negatives). Given that route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were simply not there. However, because these data are generated, we have pair's true odds ratio. If we would calculate odds ratio only from occupancy data, we would end up with infinity value.
+There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there.
 
-### Stop Scale
+## Stop Scale
 
-Next step is to simulate point scale data based on the data for routes, which we already have. I choose to filter only pairs which have **k \>= 1**, because there is no reason to calculate syntopy on transect where is 0 possibility of co-occurrence.
+The next step is to simulate point-scale data from the route data we already have. I choose to filter only pairs with **k \>= 1**, because there is no reason to calculate syntopy on transects where there is 0 possibility of co-occurrence.
 
 ```{r}
 # Select only rows where k >= 1
@@ -247,7 +265,7 @@ for (row_idx in 1:nrow(valid_route_data)) {
   # Extract pair metadata and parameters
   current_pair  <- valid_route_data$pair_id[row_idx]
   num_routes <- valid_route_data$k[row_idx]
-  local_omega   <- valid_route_data$OR[row_idx] # using same omega as for the routes
+  local_alpha   <- valid_route_data$OR[row_idx] # using same alpha as for the route sclae
   
   # Calculate the realized regional occupancy rates for this specific pair
   rate_A <- valid_route_data$m1[row_idx] / valid_route_data$N[row_idx]
@@ -274,7 +292,7 @@ for (row_idx in 1:nrow(valid_route_data)) {
     s_m2 <- max(1, s_m2)
     
     # Draw realized stop co-occurrences using Fisher's Noncentral Hypergeometric
-    s_k <- rFNCHypergeo(1, s_m1, S_total - s_m1, s_m2, local_omega)
+    s_k <- rFNCHypergeo(1, s_m1, S_total - s_m1, s_m2, local_alpha)
     
     # Wrap it up in the list
     datalist[[counter]] <- data.frame(
@@ -311,11 +329,11 @@ head(stop_data)
 
 # Models
 
-We have prepared our data and now we can run some models using the `ulam()` function from `rethinking` package. There are several steps we need to take to get the output:
+We have prepared our data and can now run some models using the `ulam()` function from the `rethinking` package. There are several steps we need to take to get the output:
 
-1.  Wrap up data into list, so `ulam` can read it.
+1.  Wrap up the data into a list so that `ulam` can read it.
 
-2.  Import the separate file for Fishers's non-central hypergeometric likelihood function (box 1).
+2.  Import the separate file for Fisher's non-central hypergeometric likelihood function.
 
 3.  Set up the model formula in `ulam`.
 
@@ -324,30 +342,26 @@ We have prepared our data and now we can run some models using the `ulam()` func
 5.  Run the model using `stan()` function from `rstan` package.
 
 ::: {.callout-tip collapse="false"}
-## Box 1
+## Box 2
 
-The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species sort completely at random, this distribution accounts for ecological attraction or repulsion via an odds ratio parameter.
-
-### 1. Constraints and Support Bounds
+The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species are sorted completely at random, this distribution accounts for ecological attraction or repulsion via an odds-ratio parameter.
 
 The function first calculates the absolute physical boundaries of co-occurrence ($k$) allowed by the individual species' occupancy counts ($m_1, m_2$) within the total sampled sites ($N$): $$k_{\min} = \max(0, m_1 + m_2 - N)$$ $$k_{\max} = \min(m_1, m_2)$$
 
 If an observed or sampled co-occurrence count falls outside this range ($k < k_{\min}$ or $k > k_{\max}$), the function returns $-\infty$, assigning it a probability of 0 and rendering that parameter space impossible for the MCMC sampler.
-
-### 2. The Log-Numerator (The Observed State)
-
-For the actual observed co-occurrences ($k$) under a estimated conditional odds ratio ($\mu$), the unnormalized log-probability is calculated using log-combinatorics (`lchoose`): $$\log(\text{Numerator}) = \ln \binom{m_1}{k} + \ln \binom{N - m_1}{m_2 - k} + k \cdot \ln(\mu)$$
-
-### 3. The Partition Function (Normalization Constant)
-
-Because the probabilities of all possible outcomes must sum to exactly 1, the function loops through every valid state from $k_{\min}$ to $k_{\max}$ to calculate the total probability space vector ($\mathbf{T}$). It then normalizes the final probability by subtracting the total sum of this vector from our observed state using a numerically stable routine: $$\text{LPMF} = \log(\text{Numerator}) - \text{log\_sum\_exp}(\mathbf{T})$$
-
-In a log-space framework, subtraction mathematically equates to division, successfully producing a clean, fully normalized probability density score for the sampler.
 :::
 
 ## Route Scale Model
 
+For each route $i$ out of $N$, the co-occurrence affinity ($α$) is the log-odds ratio of given parameters:
+
+$$\text{log}(\alpha_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}$$
+
 ```{r}
+#| echo: true
+#| message: false
+#| warning: false
+#| paged-print: false
 dat_list <- list(
   k = route_data$k,
   m1 = route_data$m1,
@@ -370,17 +384,17 @@ likelihood_pmf <- paste(
 model <- ulam(
   alist(
     # Likelihood
-    k ~ custom( fisher_hyper_lpmf(k[i] | exp(log_omega[i]), m1[i], m2[i], N[i]) ),
+    k ~ custom( fisher_hyper_lpmf(k[i] | exp(log_alpha[i]), m1[i], m2[i], N[i]) ),
     
     # Linear Predictor
-    log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry,
+    log_alpha <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry,
     
     # Priors
-    b0 ~ dnorm(0, 10),
-    b_res ~ dnorm(0, 10),
-    b_hab ~ dnorm(0, 10),
-    b_sym ~ dnorm(0, 10),
-    b_prod ~ dnorm(0, 10)
+    b0 ~ dnorm(0, 3),
+    b_res ~ dnorm(0, 3),
+    b_hab ~ dnorm(0, 3),
+    b_sym ~ dnorm(0, 3),
+    b_prod ~ dnorm(0, 3)
   ), 
   data = dat_list, 
   sample = FALSE # Generate text for stan, not sampling yet
@@ -404,7 +418,7 @@ out_routes <- stan(
 )
 ```
 
-First we can check the convergence of chains.
+First, we can check the convergence of chains.
 
 ```{r}
 traceplot(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod"))
@@ -416,11 +430,13 @@ All chains have converged nicely!
 precis(out_routes)
 ```
 
-Our model estimates for most parameters are very good, however the intercept (baseline log-odds ratio) is a bit underestimated despite the credible interval includes the true value (0.5).
+Our model estimates for most parameters are very good; the intercept mean (baseline log-odds ratio) is slightly underestimated, despite the credible interval including the true value (0.5).
 
 ## Stop Scale Model
 
 ```{r}
+#| message: false
+#| warning: false
 # Map character route IDs to sequential integers for Stan indexing
 stop_data$route_index <- as.integer(as.factor(stop_data$route_id))
 
@@ -446,11 +462,11 @@ model_stops <- ulam(
 log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry + (z_route[route_index] * sigma_route),
 
     # Fixed Effect Priors
-    b0 ~ dnorm(0, 10),
-    b_res ~ dnorm(0, 10),
-    b_hab ~ dnorm(0, 10),
-    b_sym ~ dnorm(0, 10),
-    b_prod ~ dnorm(0, 10),
+   b0 ~ dnorm(0, 3),
+    b_res ~ dnorm(0, 3),
+    b_hab ~ dnorm(0, 3),
+    b_sym ~ dnorm(0, 3),
+    b_prod ~ dnorm(0, 3),
     
     # Adaptive Priors
     # Non-Centered Random Effect Layer
@@ -535,24 +551,6 @@ stop_model_evaluation <- pair_level_averages %>%
 print(head(stop_model_evaluation))
 ```
 
-# Smaller number of sister pairs (n=30)
-
-```{r}
-
-```
-
-```{r}
-
-```
-
 # Conclusion
 
 # Reference
-
-Remeš, V. and Harmáčková, L. (2023), Resource use divergence facilitates the evolution of secondary syntopy in a continental radiation of songbirds (Meliphagoidea): insights from unbiased co-occurrence analyses. Ecography, 2023: e06268. https://doi.org/10.1111/ecog.06268
-
-Newbury, A. (2024). Bayesian estimation of co-occurrence affinity with dyadic regression. bioRxiv. https://doi.org/10.1101/2024.01.16.575941
-
-Haldane, J. B. S. (1956). *The estimation and significance of the logarithm of a ratio of frequencies*. Annals of Human Genetics, 20(4), 309-311.
-
-Anscombe, F. J. (1956). *On estimating binomially distributed populations*. Biometrika, 43(3/4), 461-464. :::
