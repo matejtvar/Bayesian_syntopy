@@ -1,5 +1,0 @@
----
-title: "rethinking_book"
-format: html
----
-

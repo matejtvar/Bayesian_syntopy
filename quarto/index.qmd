@@ -28,9 +28,9 @@ To measure syntopy accurately, we need to consider only sites within the range o
 3.  Species B is present,
 4.  Both species are missing at the site.
 
-If we want to model this problem using Bayesian methods, we can follow the approach in @newbury measuring the degree of species co-occurrence with the log-odds ratio (see box 1). The most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
+If we want to model this problem using Bayesian methods, we can follow the approach in @newbury2025 measuring the degree of species co-occurrence with the log-odds ratio (see box 1). The most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
 
-::: callout-note
+::: {.callout-note collapse="true" appearance="simple"}
 ## Box 1: Bayesian Log Odds Ratio
 
 The log-odds ratio serves as the foundational metric to quantify spatial association between sister species. Based on a standard $2 \times 2$ presence-absence matrix ($a$ = both present, $b/c$ = single species present, $d$ = both absent), the empirical calculation is:
@@ -341,7 +341,7 @@ We have prepared our data and can now run some models using the `ulam()` functio
 
 5.  Run the model using `stan()` function from `rstan` package.
 
-::: {.callout-tip collapse="false"}
+::: {.callout-tip collapse="true"}
 ## Box 2
 
 The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species are sorted completely at random, this distribution accounts for ecological attraction or repulsion via an odds-ratio parameter.
@@ -358,10 +358,7 @@ For each route $i$ out of $N$, the co-occurrence affinity ($α$) is the log-odds
 $$\text{log}(\alpha_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}$$
 
 ```{r}
-#| echo: true
-#| message: false
-#| warning: false
-#| paged-print: false
+#| output: false
 dat_list <- list(
   k = route_data$k,
   m1 = route_data$m1,
@@ -412,7 +409,7 @@ out_routes <- stan(
   data = dat_list,
   chains = 4, 
   cores = 4,
-  iter = 4000,
+  iter = 2000,
   seed = 1,
   refresh = 0 # <--- Turns off the iteration progress tracker
 )
@@ -427,6 +424,7 @@ traceplot(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod"))
 All chains have converged nicely!
 
 ```{r}
+#| df-print: default
 precis(out_routes)
 ```
 
@@ -492,7 +490,7 @@ out_stops <- stan(
   data = dat_list_stops,
   chains = 4, 
   cores = 4,
-  iter = 4000,
+  iter = 2000,
   seed = 1,
   refresh = 0 # <--- Turns off the iteration progress tracker
 )
@@ -507,7 +505,9 @@ traceplot(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_
 Now we can take a look at the parameter estimates.
 
 ```{r}
-precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
+results <- precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
+results <- as.data.frame(results)
+print(results)
 ```
 
 ```{r}
@@ -517,7 +517,7 @@ n_samples  <- length(post_stops$b0)
 n_rows     <- nrow(stop_data)
 
 # Create an empty matrix to hold log-odds (rows = post-samples, cols = stop_data rows)
-log_omega_routes <- matrix(NA, nrow = n_samples, ncol = n_rows)
+log_alpha_routes <- matrix(NA, nrow = n_samples, ncol = n_rows)
 
 # Reconstruct log_omega per transect by pulling pair fixed effects and adding local random noise
 for(i in 1:n_rows) {
@@ -532,11 +532,11 @@ for(i in 1:n_rows) {
   reconstructed_a_route <- post_stops$z_route[, current_route_idx] * post_stops$sigma_route
   
   # Total local log-odds ratio
-  log_omega_routes[, i] <- pair_base + reconstructed_a_route
+  log_alpha_routes[, i] <- pair_base + reconstructed_a_route
 }
 
 # 1. Compute and assign the estimated log-odds ratio back to each individual transect row
-stop_data$estimated_local_log_OR <- colMeans(log_omega_routes)
+stop_data$estimated_local_log_OR <- colMeans(log_alpha_routes)
 
 # 2. Average the estimated log-odds values for each distinct pair_id
 pair_level_averages <- aggregate(estimated_local_log_OR ~ pair_id, data = stop_data, FUN = mean)
@@ -549,6 +549,34 @@ We can compare it with the true values of local logOR.
 stop_model_evaluation <- pair_level_averages %>% 
   left_join(route_data %>% select(pair_id, true_log_OR = log_OR), by = "pair_id")
 print(head(stop_model_evaluation))
+```
+
+```{r}
+# Plot the fixed effects of the stop scale model
+plot(precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")))
+abline(v = 0, lty = 2, col = "red") # Add a baseline line at 0
+```
+
+```{r}
+# Using the evaluation dataframe we merged earlier
+plot(stop_model_evaluation$true_log_OR, stop_model_evaluation$estimated_local_log_OR,
+     pch = 16, col = rgb(0.1, 0.4, 0.7, 0.6), cex = 1.2,
+     xlab = "True Log-Odds Ratio (Generative Space)",
+     ylab = "Model-Estimated Log-Odds Ratio",
+     main = "Posterior Predictive Validation (Stop Scale)")
+
+# Add a 1:1 line of perfect recovery
+abline(a = 0, b = 1, lty = 2, lwd = 2, col = "darkgray")
+
+# Optional: Add a smooth trendline of your actual estimates
+abline(lm(estimated_local_log_OR ~ true_log_OR, data = stop_model_evaluation), 
+       col = "firebrick", lwd = 2)
+```
+
+Comparison of observed and predicted values!
+
+```{r}
+
 ```
 
 # Conclusion
