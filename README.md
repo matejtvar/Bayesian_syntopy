@@ -17,22 +17,4 @@ So that is it. Optionally, if you want feedback on your analysis or on your prio
 In this assignment I analyse the data from the template study of my supervisor prof. Vladimír Remeš. I am going to replicate his approach in my master's thesis and we already decide to do it the Bayesian way, because it provides advantages over traditionally used indicies of co-occurrence.
 
 Here is the plan: 
-We will analyse species co-occurrence using **Fisher's non-central hypergeometric distribution** for the occurence data of sister species pairs to examine which niche and spatial predictors facilitate/impede their presence on the same local sites.
-
-
-# Master Thesis Proposal
-## Secondary syntopy in North American passerines: Multiscale analysis using the BBS dataset
-## Supervisor: Prof. Vladimír Remeš
-
-### Annotation
-Understanding the ecological and evolutionary drivers of local cooccurrence (syntopy) among closely related species is key to explaining biodiversity patterns. My Bachelor's thesis, Ecology and Evolution of Secondary Sympatry in Birds, provides a theoretical foundation for this topic by exploring how ecological divergence facilitates co-existence following range overlap. Building on this framework, my master’s thesis will focus on the ecology and evolution of local syntopy in North American passerines using data from the North American Breeding Bird Survey (BBS), a standardised large-scale monitoring programme. The central hypothesis is that local syntopy is promoted by ecological divergence, particularly in resource use, and that the influence of such predictors differs between spatial scales. I will assess syntopy at the scale of individual point counts and entire transects, and evaluate the role of species traits in shaping these patterns. The methodological approach will replicate the framework of Remeš & Harmáčková (2023), which uses unbiased cooccurrence analyses to infer the drivers of syntopy.
-
-### Methods
-The study will use data from the North American Breeding Bird Survey (BBS), a long-term, standardised monitoring programme that records bird assemblages across approximately 2,900 routes annually. Each route includes 50 point counts spaced at 0.5-mile intervals. I will analyse patterns of syntopy at two spatial resolutions:
-
-- Point scale (individual stops)
-- Transect scale (combined stops along each route)
-
-To infer drivers of syntopy, I will replicate the analytical framework of Remeš & Harmáčková (2023), which uses cooccurrence analyses and species trait data to identify ecological predictors of coexistence. A novel feature of this thesis will be analysing syntopy at two spatial resolutions (see above).
-
-Remeš, V. and Harmáčková, L. (2023), Resource use divergence facilitates the evolution of secondary syntopy in a continental radiation of songbirds (Meliphagoidea): insights from unbiased co-occurrence analyses. Ecography, 2023: e06268. https://doi.org/10.1111/ecog.06268 
+We will analyse species co-occurrence using **Fisher's non-central hypergeometric distribution** for the simulation of co-occurrence data of sister species pairs to examine which ecological and spatial predictors facilitate/impede their presence at the same local sites.
