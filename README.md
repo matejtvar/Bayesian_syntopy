@@ -14,7 +14,7 @@ So that is it. Optionally, if you want feedback on your analysis or on your prio
 
 # My topic: Bayesian Analysis of Syntopy
 
-Following the framework of Remeš and Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds..
+Following the framework of Remeš and Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds.
 
 Assignment Goals
 
