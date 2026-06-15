@@ -11,7 +11,7 @@ bibliography: references.bib
 
 # Introduction
 
-Following the framework of @remes2023, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. This process leads to build-up of local biodiversity over time and is driven by niche conservatism, ecological specialisation and energetic constrains @remes2025.
+Following the framework of @remes2023, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. This process leads to build-up of local biodiversity over time and is driven by niche conservatism, ecological specialisation and energetic constrains [@remes2025].
 
 In this work, I model the co-occurrence affinity at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales (routes and stops) using [BBS (Breeding Bird Survey)](https://www.pwrc.usgs.gov/bbs/) data for passerines and [eBird Status & Trends](https://science.ebird.org/en/status-and-trends) range maps. Therefore, I decided to simulate data to match the structure of the BBS data to understand their structure and modelling options better.
 
@@ -23,7 +23,7 @@ In this work, I model the co-occurrence affinity at local sites as a function of
 3.  Fit models for both scales using the `ulam()` function and compare the estimates with true values.
 :::
 
-To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis, because otherwise it will lead to biased results @remes2023. We can imagine the range overlap being the jar, from which we randomly draw balls (sites with a particular co-occurrence state of both species). There are four possible outcomes of that draw:
+To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis, because otherwise it will lead to biased results [@remes2023]. We can imagine the range overlap being the jar, from which we randomly draw balls (sites with a particular co-occurrence state of both species). There are four possible outcomes of that draw:
 
 1.  Both species are present,
 2.  Species A is present,
