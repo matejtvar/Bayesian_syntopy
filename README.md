@@ -12,9 +12,15 @@ So that is it. Optionally, if you want feedback on your analysis or on your prio
 
 **Some people asked me this: If you already have your dream data (collected, for instance, within work on your diploma or research in general) it is fine to start with loading the empirical data and analysing them the Bayesian way. So, just submitting a high-quality version of 3 is also a passable strategy.**
 
-# My topic: Bayesian analysis of syntopy (local Co-occurence) in birds using data from Remeš & Harmáčková 2023
+# My topic: Bayesian Analysis of Syntopy
 
-In this assignment I analyse the data from the template study of my supervisor prof. Vladimír Remeš. I am going to replicate his approach in my master's thesis and we already decide to do it the Bayesian way, because it provides advantages over traditionally used indicies of co-occurrence.
+Following the framework of Remeš and Harmáčková (2023), this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds..
 
-Here is the plan: 
-We will analyse species co-occurrence using **Fisher's non-central hypergeometric distribution** for the simulation of co-occurrence data of sister species pairs to examine which ecological and spatial predictors facilitate/impede their presence at the same local sites.
+Assignment Goals
+
+1. Generate dream syntopy data for both scales (routes and stops).
+2. Visualise and explore generated data.
+3. Fit models for both scales using the ulam() function and compare the estimates with true values.
+
+ Newbury, Arthur. 2025. “Bayesian Estimation of Co-Occurrence Affinity with Dyadic Regression.” bioRxiv, ahead of print. https://doi.org/10.1101/2024.01.16.575941.
+Remeš, Vladimír, and Lenka Harmáčková. 2023. “Resource Use Divergence Facilitates the Evolution of Secondary Syntopy in a Continental Radiation of Songbirds (Meliphagoidea): Insights from Unbiased Co-Occurrence Analyses.” Ecography 2023 (2): e06268. https://doi.org/10.1111/ecog.06268.
