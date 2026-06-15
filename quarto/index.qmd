@@ -11,26 +11,28 @@ bibliography: references.bib
 
 # Introduction
 
-Following the framework of @remes2023, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. I model the co-occurrence probability at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales (routes and stops) using BBS (Breeding Bird Survey) data for passerines and eBird Status & Trends range maps.
+Following the framework of @remes2023, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. This process leads to build-up of local biodiversity over time and is driven by niche conservatism, ecological specialisation and energetic constrains @remes2025.
+
+In this work, I model the co-occurrence affinity at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales (routes and stops) using [BBS (Breeding Bird Survey)](https://www.pwrc.usgs.gov/bbs/) data for passerines and [eBird Status & Trends](https://science.ebird.org/en/status-and-trends) range maps. Therefore, I decided to simulate data to match the structure of the BBS data to understand their structure and modelling options better.
 
 ::: callout-note
 ## Assignment Goals
 
 1.  Generate dream syntopy data for both scales (routes and stops).
 2.  Visualise and explore generated data.
-3.  Fit models for both scales using the `ulam` function and compare the estimates with true values.
+3.  Fit models for both scales using the `ulam()` function and compare the estimates with true values.
 :::
 
-To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis, because otherwise it will lead to biased results @remes2023. We can imagine the range overlap being the jar, from which we randomly draw balls (sites). There are four possible outcomes of that draw:
+To measure syntopy accurately, we need to consider only sites within the range overlap for the analysis, because otherwise it will lead to biased results @remes2023. We can imagine the range overlap being the jar, from which we randomly draw balls (sites with a particular co-occurrence state of both species). There are four possible outcomes of that draw:
 
 1.  Both species are present,
 2.  Species A is present,
 3.  Species B is present,
 4.  Both species are missing at the site.
 
-If we want to model this problem using Bayesian methods, we can follow the approach in @newbury2025 measuring the degree of species co-occurrence with the log-odds ratio (see box 1). The most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement (unlike the binomial distribution), which reflects the true nature of the problem, given the limited number of pairs.
+If we want to model this problem using Bayesian methods, than the most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement, which reflects the true nature of the problem, given the limited number of pairs. We can follow the Bayesian approach in @newbury2025 measuring the degree of species co-occurrence with the log-odds ratio (for details see box 1).
 
-::: {.callout-note collapse="true" appearance="simple"}
+::: {.callout-note collapse="true"}
 ## Box 1: Bayesian Log Odds Ratio
 
 The log-odds ratio serves as the foundational metric to quantify spatial association between sister species. Based on a standard $2 \times 2$ presence-absence matrix ($a$ = both present, $b/c$ = single species present, $d$ = both absent), the empirical calculation is:
@@ -55,17 +57,15 @@ In this assignment, we transition away from this traditional empirical formula a
 
     - $\alpha_i$ = the conditional co-occurrence odds ratio for pair $i$.
 
-    For each site $i$ out of $N$, the co-occurrence affinity ($ω_i$) is the log-odds ratio of given parameters:
+    For each site $i$ out of $N$, the co-occurrence affinity ($\alpha_i$) is the log-odds ratio of given parameters:
 
-    $$\text{log}(\alpha_i) = \beta_{0} + \beta_{1} \cdot X_{1,i} + \lambda_{1,i}$$
+    $$\text{log}(\alpha_i) = \beta_{0} + \beta_{1} \cdot X_{1,i}$$
 
 2.  **Mathematical Stability:** By evaluating data through the Log Probability Mass Function (LPMF) of Fisher's Non-Central Hypergeometric distribution, our model naturally handles small sample sizes and zero counts. It completely bypasses the need to delete data or inject mathematical bandages.
 
-3.  **Symmetric Linear Predictors:** Taking the natural logarithm maps highly asymmetric raw odds ratios onto a continuous linear space from $-\infty$ to $+\infty$, centering independent sorting perfectly at $0$ ($>0$ is syntopy, $<0$ is segregation). This allows our ecological parameters ($\beta_{\text{res}}$, $\beta_{\text{hab}}$, etc.) to be added together seamlessly.
+3.  **Symmetric Linear Predictors:** Taking the natural logarithm maps highly asymmetric raw odds ratios onto a continuous linear space from $-\infty$ to $+\infty$, centering independent sorting perfectly at $0$ ($>0$ is syntopy, $<0$ is allotopy). This allows our ecological parameters ($\beta_{\text{res}}$, $\beta_{\text{hab}}$, etc.) to be added together seamlessly.
 
-4.  **Information Pooling:** Unlike the typical formula, which treats every route as an isolated island, our hierarchical structure links local routes together. If a specific route has noisy counts, the model performs **partial pooling**—shrinking its local estimate back toward the regional baseline dictated by the environmental covariates.
-
-5.  **Prevalence Invariance:** Unlike traditional similarity indices (e.g., Jaccard, Simpson), this metric standardises for baseline regional abundance, therefore isolates true ecological affinity without being biased by widespread or ubiquitous species.
+4.  **Prevalence Invariance:** Unlike traditional similarity indices (e.g., Jaccard, Simpson), this metric standardises for baseline regional abundance, therefore isolates true ecological affinity without being biased by widespread or ubiquitous species.
 :::
 
 # Data Simulation
@@ -78,7 +78,7 @@ To satisfy the assignment's complexity requirements, I define **5 true parameter
 
 - $\beta_{hab.pref} = 0.6$ (Difference in micro-habitat and environmental preference decreases syntopy)
 
-- $\beta_{prod} = 0.3$ (Environmental productivity (e.g., NDVI): richer environments support co-occurrence)
+- $\beta_{prod} = 0.3$ (Environmental productivity (e.g., NDVI): richer environments facilitate synotopy)
 
 - $\beta_{sympatry} = 0.8$ (Spatial overlap: regional overlap strongly increases syntopy)
 
@@ -86,25 +86,25 @@ I want to simulate data that resembles the BBS study design (\~40 km-long routes
 
 1\) route scale (looking at syntopy across transects within the range overlap)
 
-2\) stop scale (looking at syntopy within transects)
+2\) stop scale (looking at syntopy within transects).
 
-For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn` library, and for the modelling, we will use libraries `rethinking` and `rstan`.
+For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn` library, and for the modelling, we will use libraries `rethinking` and `rstan`. For data wrangling we will use library `dplyr`.
 
 ```{r}
-#| include: false
+#| output: false
 library(BiasedUrn)
 library(rethinking)
 library(rstan)
-library(tidyverse)
+library(dplyr)
 set.seed(1)
 ```
 
 ## Route Scale
 
-For the number of sites, I choose a negative binomial distribution because it is integer-valued and has a long right tail.
+For the routes, I choose a negative binomial distribution because it is integer-valued and has a long right tail.
 
 ```{r}
-#| label: Route Scale Data Simulation
+#| label: Route-Scale Data Simulation
 num_pairs <- 100
 route_occupancy <- function(num_pairs){
   # simulates the occupancy of species across N routes
@@ -121,7 +121,7 @@ route_occupancy <- function(num_pairs){
 }
 route_oc <- route_occupancy(num_pairs = num_pairs)
 
-hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="purple")
+hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="lightblue")
 ```
 
 Some species pairs have a very large number of sampled sites, while others have just a few within the sympatric range. We can check the parameters of the distribution:
@@ -144,7 +144,7 @@ hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Numbe
 
 It is exactly like that!
 
-Let us continue with parameter generation. First, I will generate three already standardised variables using the normal distribution.
+Let us continue with parameter generation. First, I will generate three already standardised variables using a normal distribution.
 
 ```{r}
 X_res_div   <- rnorm(num_pairs, mean = 0, sd = 1) # X1
@@ -153,7 +153,7 @@ X_prod      <- rnorm(num_pairs, mean = 0, sd = 1) # X3
 hist(X_res_div, breaks = 12, main="Resource Use Divergence", xlab="Degree of divergence", col="orange")
 ```
 
-Let us continue with parameter generation. First, I will generate three already standardised variables using the normal distribution. For the degree of sympatry (% of range overlap), I need to generate a distribution with x \> 5 (the minimum degree of sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit, I have to use a beta distribution.
+For the degree of sympatry (% of range overlap), I need to generate a distribution with x \> 5 (the minimum degree of sympatry is typically 5 %) and x \<= 100. As I want the values to have decimals and I need a strict upper limit, I have to use a beta distribution.
 
 ```{r}
 raw_beta <- rbeta(num_pairs, shape1 = 2, shape2 =3)
@@ -163,7 +163,7 @@ sympatry <- sym_min + (raw_beta - min(raw_beta)) * (symp_max - sym_min) / (max(r
 hist(sympatry, breaks = 12, main="Degree of Sympatry", xlab="Range overlap (%)", col="darkseagreen3")
 ```
 
-We can see that most pairs have a high degree of sympatry, while a few have very low values. Now we have to standardise it prior to modelling.
+We can see that most pairs have a high degree of sympatry, while a few have very low values. We have to standardise it prior to modelling.
 
 ```{r}
 #| label: Parameter X4
@@ -182,7 +182,7 @@ beta_sympatry <- 0.8
 beta_prod     <- 0.3
 ```
 
-The next step is to calculate a linear combination of parameters, and we exponentiate the log-odds to obtain a simple odds ratio.
+The next step is to calculate a linear combination of parameters, and we exponentiate the log-odds ratio to obtain a simple odds ratio.
 
 ```{r}
 #| label: Linear Combination of True Parameters
@@ -192,6 +192,7 @@ log_alpha <- beta_0 +
              beta_sympatry * X_sympatry + 
              beta_prod     * X_prod
 alpha <- exp(log_alpha) # Odds Ratio
+summary(alpha)
 ```
 
 With this settled, we calculate the linear predictor for each pair using the `BiasedUrn` library.
@@ -216,7 +217,7 @@ for(i in 1:num_pairs) {
 Let us pack it up into `data.frame` and take a look at the data.
 
 ```{r}
-#| label: Route Scale Data Final
+#| label: Route-Scale Data Final
 route_data <- data.frame(
   N = route_oc$N, m1 = m1, m2 = m2, k = k,
   res_div = X_res_div, hab_pref = X_hab_pref,
@@ -226,17 +227,17 @@ route_data <- data.frame(
 head(route_data)
 ```
 
-The `data.frame` looks good, and we should now explore the data before proceeding to the next stage.
+The `route_data` looks good, and we can now explore the data before proceeding to the next stage.
 
 ```{r}
 #| label: Route Scale Data Exploration & Wrangling
 nrow(route_data[route_data$k == 0,])
-# There is 18 pairs with k=0
+# There is 15 pairs with k=0
 route_data[abs(route_data$m1 - route_data$m2) >100,]
 # There are 4 pairs with a very high difference in occupancy between species
 ```
 
-Now we have to make an unique id for each pair to be able to link it later with stops data.
+Now we have to make an unique id for each pair in `route_data` to be able to link it later with stop data.
 
 ```{r}
 # Add unique IDs, true odds ratio and true log-odds ratio
@@ -246,11 +247,13 @@ route_data$log_OR <- log_alpha
 route_data[route_data$m1 == 0 & route_data$m2 == 0,]
 ```
 
-There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there.
+::: {.callout-important collapse="false"}
+There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there if both of the species are not extremly rare or difficult to detect. This problem will likely increase on stop-level scale, because an individual stops are the basic observational unit, so maybe it will be reasonable to use occupancy models to estimate the probabily of false positives.
+:::
 
 ## Stop Scale
 
-The next step is to simulate point-scale data from the route data we already have. I choose to filter only pairs with **k \>= 1**, because there is no reason to calculate syntopy on transects where there is 0 possibility of co-occurrence.
+The next step is to simulate stop-scale data from the route data we already have. I choose to filter only pairs with **k \>= 1**, because there is no reason to calculate syntopy on transects where there is 0 possibility of co-occurrence.
 
 ```{r}
 # Select only rows where k >= 1
@@ -265,7 +268,7 @@ for (row_idx in 1:nrow(valid_route_data)) {
   # Extract pair metadata and parameters
   current_pair  <- valid_route_data$pair_id[row_idx]
   num_routes <- valid_route_data$k[row_idx]
-  local_alpha   <- valid_route_data$OR[row_idx] # using same alpha as for the route sclae
+  local_alpha   <- valid_route_data$OR[row_idx] # using same alpha as for the route scale
   
   # Calculate the realized regional occupancy rates for this specific pair
   rate_A <- valid_route_data$m1[row_idx] / valid_route_data$N[row_idx]
@@ -314,48 +317,81 @@ head(data)
 Finally, we join our `data` with the generated parameters for each pair we already have in `route_data`.
 
 ```{r}
-# Start with the simulated data (which naturally excludes k = 0 pairs)
 stop_data <- data |>
   select(pair_id, route_id, S_total, m1_stops, m2_stops, k_stops) |> 
   left_join(
-    # Pull ONLY the environmental covariates from route_data
+    # Pull the environmental covariates from route_data
     route_data |> select(pair_id, res_div, hab_pref, prod, sympatry), 
     by = "pair_id"
   )
 
-# Verify the clean data frame
 head(stop_data)
 ```
 
 # Models
 
-We have prepared our data and can now run some models using the `ulam()` function from the `rethinking` package. There are several steps we need to take to get the output:
+We have prepared our data and can now run the models using the `ulam()` function from the `rethinking` package. There are several steps we need to take to get the output:
 
-1.  Wrap up the data into a list so that `ulam` can read it.
+1.  Wrap up the data into a list so that `ulam()` can read it.
 
-2.  Import the separate file for Fisher's non-central hypergeometric likelihood function.
+2.  Import the separate *stan* file for likelihood function (see box 2).
 
-3.  Set up the model formula in `ulam`.
+3.  Set up the model formula in `ulam()`.
 
-4.  Transform the code into stan syntax.
+4.  Transform the code into *stan* syntax.
 
 5.  Run the model using `stan()` function from `rstan` package.
 
 ::: {.callout-tip collapse="true"}
-## Box 2
+## Box 2: Likelihood Function
 
-The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species are sorted completely at random, this distribution accounts for ecological attraction or repulsion via an odds-ratio parameter.
+The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species are sorted completely at random, this distribution accounts for co-occurrence affinity via an odds-ratio parameter.
 
-The function first calculates the absolute physical boundaries of co-occurrence ($k$) allowed by the individual species' occupancy counts ($m_1, m_2$) within the total sampled sites ($N$): $$k_{\min} = \max(0, m_1 + m_2 - N)$$ $$k_{\max} = \min(m_1, m_2)$$
+The function first calculates the absolute boundaries of co-occurrence ($k$) allowed by the individual species' occupancy counts ($m_1, m_2$) within the total sampled sites ($N$): $$k_{\min} = \max(0, m_1 + m_2 - N)$$ $$k_{\max} = \min(m_1, m_2)$$
 
 If an observed or sampled co-occurrence count falls outside this range ($k < k_{\min}$ or $k > k_{\max}$), the function returns $-\infty$, assigning it a probability of 0 and rendering that parameter space impossible for the MCMC sampler.
+
+``` stan
+// fisher_hyper_lpmf.stan
+real fisher_hyper_lpmf(int k, real mu, int m1, int m2, int N) {
+  if (mu <= 0) return not_a_number();
+  
+  // Bounds for hypergeometric distribution
+  int k_min = max({0, m1 + m2 - N});
+  int k_max = min({m1, m2});
+  
+  // Safety check for support bounds
+  if (k < k_min || k > k_max) return negative_infinity();
+  
+  // Log-numerator for the observed value k
+  real log_num = lchoose(m1, k) + lchoose(N - m1, m2 - k) + k * log(mu);
+  
+  // Normalization constant calculation
+  int range_size = k_max - k_min + 1;
+  vector[range_size] terms;
+  
+  // Explicitly declare 'int' for the loop iterator
+  for (i in 0:(range_size - 1)) {
+    int curr_i = k_min + i;
+    terms[i + 1] = lchoose(m1, curr_i) + lchoose(N - m1, m2 - curr_i) + curr_i * log(mu);
+  }
+  
+  return log_num - log_sum_exp(terms);
+}
+```
 :::
 
-## Route Scale Model
+## Route-Scale Model
+
+The Route Scale model evaluates macro-scale species co-occurrence (syntopy) across regional transects within their sympatric range. At this spatial dimension, the ecological affinity is modeled using a simple Bayesian linear regression.
 
 For each route $i$ out of $N$, the co-occurrence affinity ($α$) is the log-odds ratio of given parameters:
 
 $$\text{log}(\alpha_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i}$$
+
+The model estimates parameters on a linear log-odds scale using weakly informative, regularizing Gaussian priors ($\beta \sim \text{Normal}(0, 3)$). Because these parameters are evaluated on a log scale, an $\text{SD} = 3$ provides a highly permissive yet realistic prior space (corresponds to an odds ratio of $e^3 \approx 20$).
+
+This framework provides the model with complete flexibility to capture strong biological relationships if supported by the data, while successfully flatlining support for infinite, unconstrained effect sizes where the MCMC sampler typically stalls.
 
 ```{r}
 #| output: false
@@ -410,12 +446,11 @@ out_routes <- stan(
   chains = 4, 
   cores = 4,
   iter = 2000,
-  seed = 1,
-  refresh = 0 # <--- Turns off the iteration progress tracker
+  seed = 1
 )
 ```
 
-First, we can check the convergence of chains.
+First, we should check the convergence of chains.
 
 ```{r}
 traceplot(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod"))
@@ -424,17 +459,51 @@ traceplot(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod"))
 All chains have converged nicely!
 
 ```{r}
-#| df-print: default
-precis(out_routes)
+print(precis(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")))
 ```
 
-Our model estimates for most parameters are very good; the intercept mean (baseline log-odds ratio) is slightly underestimated, despite the credible interval including the true value (0.5).
-
-## Stop Scale Model
+Our model estimates of the true parameters are mostly very good, however the intercept mean (baseline log-odds ratio) is slightly underestimated, despite the credible interval including the true value (0.5).
 
 ```{r}
-#| message: false
-#| warning: false
+# Your true values in the exact order: b0, b_res, b_hab, b_sym, b_prod
+true_values <- c(0.5, -0.7, 0.6, 0.8, 0.3)
+
+# Corresponding base R y-coordinates (from top 5 down to bottom 1)
+y_coords <- c(5, 4, 3, 2, 1)
+
+plot(precis(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")),
+     xlim = c(-1, 1),
+     main = "Posterior Estimates vs. True Parameters")
+
+abline(v = 0, lty = 2, col = "gray50") 
+points(x = true_values, y = y_coords, col = "deepskyblue3", pch = 18, cex = 2)
+legend("topright", legend = "True Parameter", col = "deepskyblue3", pch = 18, bty = "n")
+```
+
+In this forest plot we can see, that all estimated values for the parameters lays in the credible interval, which means that there is an **89 % probability** that the true effect sits inside this fixed window.
+
+::: callout-caution
+## Why does rethinking uses 89% credible interval?
+
+As Richard McElreath explains in [Statistical Rethinking](https://xcelab.net/rm/), the package uses 89% by default as a gentle scientific protest against the arbitrary nature of the traditional "95% p-value threshold." 89 is also a prime number, which serves as a friendly reminder that credible intervals are continuous descriptions of uncertainty, not strict boundaries for what is "significant" and what isn't!
+:::
+
+## Stop-Scale Model
+
+I decided to use the hierarchical model accounting for stops association with the same route. Because nested sampling plots inherit shared local micro-habitats, spatial clustering, and unmeasured environmental noise, data points within the same route are non-independent. To account for this hierarchical structure without introducing sampling bottlenecks, the model employs an adaptive, non-centered group-level random effects architecture. This approach allows me to check if there is any significant variance among routes.
+
+The Stop Scale model evaluates fine-scale species co-occurrence (syntopy) at localized survey points ($i$) nested within larger geographic scale (routes):
+
+$$\text{log}(\alpha_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i} + (z_{\text{route}[i]} \times \sigma_{\text{route}})$$
+
+Presuming, that the variation among routes is highly clustered close to zero, we need to specify two adaptive priors to eliminate the geometric restrictions of "Neal's Funnel" near zero variance during Hamiltonian Monte Carlo sampling. The group-level deviations are mathematically decoupled into a standardized multiplier vector ($z_{\text{route}}$) and a global variance scaling parameter ($\sigma_{\text{route}}$):
+
+$$z_{\text{route}[i]} \sim \text{Normal}(0, 1)$$
+
+$$\sigma_{\text{route}} \sim \text{Exponential}(1)$$
+
+```{r}
+#| output: false
 # Map character route IDs to sequential integers for Stan indexing
 stop_data$route_index <- as.integer(as.factor(stop_data$route_id))
 
@@ -460,7 +529,7 @@ model_stops <- ulam(
 log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry + (z_route[route_index] * sigma_route),
 
     # Fixed Effect Priors
-   b0 ~ dnorm(0, 3),
+    b0 ~ dnorm(0, 3),
     b_res ~ dnorm(0, 3),
     b_hab ~ dnorm(0, 3),
     b_sym ~ dnorm(0, 3),
@@ -491,24 +560,25 @@ out_stops <- stan(
   chains = 4, 
   cores = 4,
   iter = 2000,
-  seed = 1,
-  refresh = 0 # <--- Turns off the iteration progress tracker
+  seed = 1
 )
 ```
 
-There were several warnings at the and of the sampling, that some chains did not converged in an optimal way so we first check the traceplot for the main parameters.
+First, we check the convergence with `traceplot()` for the main parameters.
 
 ```{r}
 traceplot(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
 ```
 
-Now we can take a look at the parameter estimates.
+Second, we can take a look at the main parameter estimates.
 
 ```{r}
-results <- precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
-results <- as.data.frame(results)
-print(results)
+print(precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route")))
 ```
+
+The true baseline syntopy is estimated much better with the stop scale model. Other parameters are were also estimated with increased precision. The variance between routes is negligible, indicating that the adaptive prior successfully shrunk localized deviations back to the global environmental baseline.
+
+We now compare model estimations of syntopy (log-OR) with the true values we stated for the simulation of the data.
 
 ```{r}
 # Extract posterior sample draws
@@ -519,7 +589,7 @@ n_rows     <- nrow(stop_data)
 # Create an empty matrix to hold log-odds (rows = post-samples, cols = stop_data rows)
 log_alpha_routes <- matrix(NA, nrow = n_samples, ncol = n_rows)
 
-# Reconstruct log_omega per transect by pulling pair fixed effects and adding local random noise
+# Reconstruct log_alpha per transect by pulling pair fixed effects and adding local random noise
 for(i in 1:n_rows) {
   pair_base <- post_stops$b0 + 
                post_stops$b_res * stop_data$res_div[i] + 
@@ -535,50 +605,122 @@ for(i in 1:n_rows) {
   log_alpha_routes[, i] <- pair_base + reconstructed_a_route
 }
 
-# 1. Compute and assign the estimated log-odds ratio back to each individual transect row
+# Compute and assign the estimated log-odds ratio back to each individual transect row
 stop_data$estimated_local_log_OR <- colMeans(log_alpha_routes)
 
-# 2. Average the estimated log-odds values for each distinct pair_id
+# Average the estimated log-odds values for each distinct pair_id
 pair_level_averages <- aggregate(estimated_local_log_OR ~ pair_id, data = stop_data, FUN = mean)
-print(head(pair_level_averages))
+stop_model_evaluation <- pair_level_averages |> 
+  left_join(route_data |> select(pair_id, true_log_OR = log_OR), by = "pair_id")
+head(stop_model_evaluation) 
 ```
 
-We can compare it with the true values of local logOR.
+Apparently, our model estimations of true log-odds ratio are mostly very precise. We can also plot it.
 
 ```{r}
-stop_model_evaluation <- pair_level_averages %>% 
-  left_join(route_data %>% select(pair_id, true_log_OR = log_OR), by = "pair_id")
-print(head(stop_model_evaluation))
-```
-
-```{r}
-# Plot the fixed effects of the stop scale model
-plot(precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")))
-abline(v = 0, lty = 2, col = "red") # Add a baseline line at 0
-```
-
-```{r}
-# Using the evaluation dataframe we merged earlier
 plot(stop_model_evaluation$true_log_OR, stop_model_evaluation$estimated_local_log_OR,
      pch = 16, col = rgb(0.1, 0.4, 0.7, 0.6), cex = 1.2,
-     xlab = "True Log-Odds Ratio (Generative Space)",
+     xlab = "True Log-Odds Ratio (Generated)",
      ylab = "Model-Estimated Log-Odds Ratio",
      main = "Posterior Predictive Validation (Stop Scale)")
 
 # Add a 1:1 line of perfect recovery
 abline(a = 0, b = 1, lty = 2, lwd = 2, col = "darkgray")
 
-# Optional: Add a smooth trendline of your actual estimates
+# Add a smooth trendline of actual estimates
 abline(lm(estimated_local_log_OR ~ true_log_OR, data = stop_model_evaluation), 
        col = "firebrick", lwd = 2)
 ```
 
-Comparison of observed and predicted values!
+Finally, we can plot the comparison of our posterior from stop scale model with the true parameter values.
 
 ```{r}
+#| label: Plot posteriors vs true parameters
+# Your true values in the exact order: b0, b_res, b_hab, b_sym, b_prod
+true_values <- c(0.5, -0.7, 0.6, 0.8, 0.3)
 
+# Corresponding base R y-coordinates (from top 5 down to bottom 1)
+y_coords <- c(5, 4, 3, 2, 1)
+
+plot(precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")),
+     xlim = c(-1, 1),
+     main = "Posterior Estimates vs. True Parameters")
+
+abline(v = 0, lty = 2, col = "gray50") 
+points(x = true_values, y = y_coords, col = "deepskyblue3", pch = 18, cex = 2)
+legend("topright", legend = "True Parameter", col = "deepskyblue3", pch = 18, bty = "n")
 ```
+
+::: {.callout-tip collapse="true"}
+## Supplementary Analysis: 30-Pair Downscaled Simulation
+
+To evaluate how model performance scales with a smaller dataset, I wrapped our exact data-generating process into a function and simulated data for only 30 species pairs.
+
+```{r}
+#| label: Smaller Sample Simulation Run
+#| output: false
+source("simulate_stop_data.R")
+dat_list_stops_sample <- simulate_stop_data(num_pairs = 30)
+
+model_stops_sample <- ulam(
+  alist(
+    k_stops ~ custom( fisher_hyper_lpmf(k_stops[i] | exp(log_omega[i]), m1_stops[i], m2_stops[i], S_total[i]) ),
+    log_omega <- b0 + b_res*res_div + b_hab*hab_pref + b_prod*prod + b_sym*sympatry + (z_route[route_index] * sigma_route),
+    b0 ~ dnorm(0, 3),
+    b_res ~ dnorm(0, 3),
+    b_hab ~ dnorm(0, 3),
+    b_sym ~ dnorm(0, 3),
+    b_prod ~ dnorm(0, 3),
+    z_route[route_index] ~ dnorm(0, 1),
+    sigma_route ~ dexp(1)
+  ), 
+  data = dat_list_stops_sample, 
+  sample = FALSE
+)
+
+full_stan_code_sample <- paste0(likelihood_pmf, "\n", stancode(model_stops_sample))
+out_stops_sample <- stan(
+  model_code = full_stan_code_sample,
+  data = dat_list_stops_sample,
+  chains = 4, cores = 4, iter = 2000, seed = 1
+)
+```
+
+```{r}
+print(precis(out_stops_sample, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route")))
+```
+
+We can see that the model is more uncertain in the fixed parameters which are outside the credible interval for $\beta_{res.div}$, $\beta_{hab.pref}$ and $\beta_{sympatry}$. Also variance among routes increased, which is likely the effect of higher prior sensitivity due to smaller sample size.
+
+```{r}
+true_values <- c(0.5, -0.7, 0.6, 0.8, 0.3)
+
+# Corresponding base R y-coordinates (from top 5 down to bottom 1)
+y_coords <- c(5, 4, 3, 2, 1)
+
+plot(precis(out_stops_sample, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")),
+     xlim = c(-1, 1),
+     main = "Posterior Estimates vs. True Parameters")
+
+abline(v = 0, lty = 2, col = "gray50") 
+points(x = true_values, y = y_coords, col = "deepskyblue3", pch = 18, cex = 2)
+legend("topright", legend = "True Parameter", col = "deepskyblue3", pch = 18, bty = "n")
+```
+:::
+
+::: {.callout-note collapse="false"}
+## Coding Workflow
+
+I used **Gemini** to enhance plots and help with some of the stuff in this assignment, like writing the likelihod function or function for stop scale data generation. I always reviewed the AI output and tried to apply the approaches learned in the course as much as possible.
+:::
 
 # Conclusion
 
-# Reference
+This assignment was about simulating data using generative parameters tuned to reflect established ecological thresholds, estimating them back and checking the model performance. I built a model for each scale (route/stop) separately, assuming there is no difference in the true values of parameters across scales.
+
+Both models estimated the true values for $\text{N} = 100$ with sufficient precision, although the route-scale model slightly underestimated the intercept $\beta_{0}$. The stop-scale model estimated syntopy much more accurately and showed that the variance among routes is very small, suggesting minor sampling noise rather than a structured ecological effect. I also checked the effect of a smaller sample size ($\text{N} = 30$) on the parameter estimates. It had a profound effect on the precision of the estimates, especially for values of $\beta_{res.div}$, $\beta_{hab.pref}$ and $\beta_{sympatry}$, which fell outside the credible interval.
+
+# References
+
+::: {#refs}
+:::
