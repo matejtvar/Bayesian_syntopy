@@ -1293,7 +1293,7 @@ b_sym   0.8675144 0.08590655  0.7310412  1.0059165 4756.862 1.0005226
 b_prod  0.3198335 0.07214356  0.2039426  0.4355752 4887.856 0.9991473</code></pre>
 </div>
 </div>
-<p>Our model estimates of the true parameters are mostly very good, however the intercept mean (baseline log-odds ratio) is slightly underestimated, despite the credible interval including the true value (0.5).</p>
+<p>Our model estimates of the true parameters are mostly very good, however the intercept mean (baseline log-odds ratio) is slightly underestimated and the credible interval does not include the true value (0.5).</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Your true values in the exact order: b0, b_res, b_hab, b_sym, b_prod</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>true_values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="sc">-</span><span class="fl">0.7</span>, <span class="fl">0.6</span>, <span class="fl">0.8</span>, <span class="fl">0.3</span>)</span>

@@ -462,7 +462,7 @@ All chains have converged nicely!
 print(precis(out_routes, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod")))
 ```
 
-Our model estimates of the true parameters are mostly very good, however the intercept mean (baseline log-odds ratio) is slightly underestimated, despite the credible interval including the true value (0.5).
+Our model estimates of the true parameters are mostly very good, however the intercept mean (baseline log-odds ratio) is slightly underestimated and the credible interval does not include the true value (0.5).
 
 ```{r}
 # Your true values in the exact order: b0, b_res, b_hab, b_sym, b_prod
