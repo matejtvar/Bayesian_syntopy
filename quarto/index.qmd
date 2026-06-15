@@ -121,7 +121,7 @@ route_occupancy <- function(num_pairs){
 }
 route_oc <- route_occupancy(num_pairs = num_pairs)
 
-hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="lightblue")
+hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="seagreen")
 ```
 
 Some species pairs have a very large number of sampled sites, while others have just a few within the sympatric range. We can check the parameters of the distribution:
@@ -133,13 +133,13 @@ summary(route_oc$N)
 We can also check the occupancy distribution of the first species set in the pairs:
 
 ```{r}
-hist(route_oc$m1, breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="red")
+hist(route_oc$m1, breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="darkgrey")
 ```
 
 This plot resembles a species abundance distribution, so if we take the logarithm of it, it should be close to a normal distribution.
 
 ```{r}
-hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="red")
+hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="darkgrey")
 ```
 
 It is exactly like that!
@@ -248,7 +248,7 @@ route_data[route_data$m1 == 0 & route_data$m2 == 0,]
 ```
 
 ::: {.callout-important collapse="false"}
-There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there if both of the species are not extremly rare or difficult to detect. This problem will likely increase on stop-level scale, because an individual stops are the basic observational unit, so maybe it will be reasonable to use occupancy models to estimate the probabily of false positives.
+There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there if both of the species are not extremly rare or difficult to detect. This problem will likely increase on stop-level scale, because an individual stops are the basic observational unit, so maybe it will be reasonable to use occupancy models to estimate the probability of false negatives.
 :::
 
 ## Stop Scale

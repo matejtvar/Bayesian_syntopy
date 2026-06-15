@@ -532,7 +532,7 @@ window.Quarto = {
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>route_oc <span class="ot">&lt;-</span> <span class="fu">route_occupancy</span>(<span class="at">num_pairs =</span> num_pairs)</span>
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(route_oc<span class="sc">$</span>N, <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"N Sites Distribution"</span>, <span class="at">xlab=</span><span class="st">"Number of sites for sister pair"</span>, <span class="at">col=</span><span class="st">"lightblue"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(route_oc<span class="sc">$</span>N, <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"N Sites Distribution"</span>, <span class="at">xlab=</span><span class="st">"Number of sites for sister pair"</span>, <span class="at">col=</span><span class="st">"seagreen"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -551,7 +551,7 @@ window.Quarto = {
 </div>
 <p>We can also check the occupancy distribution of the first species set in the pairs:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(route_oc<span class="sc">$</span>m1, <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"Species Occupancy Sample"</span>, <span class="at">xlab=</span><span class="st">"Number of occupied routes"</span>, <span class="at">col=</span><span class="st">"red"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(route_oc<span class="sc">$</span>m1, <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"Species Occupancy Sample"</span>, <span class="at">xlab=</span><span class="st">"Number of occupied routes"</span>, <span class="at">col=</span><span class="st">"darkgrey"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -562,7 +562,7 @@ window.Quarto = {
 </div>
 <p>This plot resembles a species abundance distribution, so if we take the logarithm of it, it should be close to a normal distribution.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">log</span>(route_oc<span class="sc">$</span>m1), <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"Species Occupancy Sample"</span>, <span class="at">xlab=</span><span class="st">"Number of occupied routes"</span>, <span class="at">col=</span><span class="st">"red"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">log</span>(route_oc<span class="sc">$</span>m1), <span class="at">breaks =</span> <span class="dv">12</span>, <span class="at">main=</span><span class="st">"Species Occupancy Sample"</span>, <span class="at">xlab=</span><span class="st">"Number of occupied routes"</span>, <span class="at">col=</span><span class="st">"darkgrey"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -902,7 +902,7 @@ Important
 </div>
 <div id="callout-3" class="callout-3-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
-<p>There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there if both of the species are not extremly rare or difficult to detect. This problem will likely increase on stop-level scale, because an individual stops are the basic observational unit, so maybe it will be reasonable to use occupancy models to estimate the probabily of false positives.</p>
+<p>There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there if both of the species are not extremly rare or difficult to detect. This problem will likely increase on stop-level scale, because an individual stops are the basic observational unit, so maybe it will be reasonable to use occupancy models to estimate the probability of false negatives.</p>
 </div>
 </div>
 </div>
