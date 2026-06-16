@@ -1637,7 +1637,7 @@ sigma_route  0.2784308 0.1652899  0.03098244  0.5537041  910.8154 1.0002463</cod
 </div>
 <div id="callout-7" class="callout-7-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
-<p>I used <strong>Gemini</strong> to enhance plots and help with some of the stuff in this assignment, like writing the likelihod function or function for stop scale data generation. I always reviewed the AI output and tried to apply the approaches learned in the course as much as possible.</p>
+<p>I used <strong>Gemini 3.5</strong> to enhance plots and help with some of the stuff in this assignment, like writing the likelihood function or function for stop scale data generation. I always reviewed the AI output and tried to apply the approaches learned in the course as much as possible.</p>
 </div>
 </div>
 </div>
@@ -1645,8 +1645,8 @@ sigma_route  0.2784308 0.1652899  0.03098244  0.5537041  910.8154 1.0002463</cod
 </section>
 <section id="conclusion" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Conclusion</h1>
-<p>This assignment was about simulating data using generative parameters tuned to reflect established ecological thresholds, estimating them back and checking the model performance. I built a model for each scale (route/stop) separately, assuming there is no difference in the true values of parameters across scales.</p>
-<p>Both models estimated the true values for <span class="math inline">\(\text{N} = 100\)</span> with sufficient precision, although the route-scale model slightly underestimated the intercept <span class="math inline">\(\beta_{0}\)</span>. The stop-scale model estimated syntopy much more accurately and showed that the variance among routes is very small, suggesting minor sampling noise rather than a structured ecological effect. I also checked the effect of a smaller sample size (<span class="math inline">\(\text{N} = 30\)</span>) on the parameter estimates. It had a profound effect on the precision of the estimates, especially for values of <span class="math inline">\(\beta_{res.div}\)</span>, <span class="math inline">\(\beta_{hab.pref}\)</span> and <span class="math inline">\(\beta_{sympatry}\)</span>, which fell outside the credible interval.</p>
+<p>This assignment was about simulating syntopy dataset using generative parameters tuned to reflect established ecological thresholds and known structure design of BBS data. I simulated data for route and stop scale, assuming there is no difference in the true values of parameters between scales. Than I tried to estimate back the specifed true values using Bayesian model for each scale separately.</p>
+<p>Both models estimated the true values for <span class="math inline">\(\text{N} = 100\)</span> with sufficient precision, although the route-scale model slightly underestimated the baseline syntopy (<span class="math inline">\(\beta_{0}\)</span>). The stop-scale model estimated syntopy much more accurately and showed that the variance among routes is very small, suggesting minor sampling noise. I also checked the effect of a smaller sample size (<span class="math inline">\(\text{N} = 30\)</span>) on the parameter estimates. It had a profound effect on the precision of the estimates, especially for values of <span class="math inline">\(\beta_{res.div}\)</span>, <span class="math inline">\(\beta_{hab.pref}\)</span> and <span class="math inline">\(\beta_{sympatry}\)</span>, which fell outside the credible interval.</p>
 </section>
 <section id="references" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> References</h1>
