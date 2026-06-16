@@ -3,7 +3,7 @@ title: "Bayesian Analysis of Syntopy"
 subtitle: "Assignment for Bayesian Statistics Course"
 author: "Matěj Tvarůžka"
 date: "`r Sys.Date()`"
-categories: [Syntopy, Spatial Data, Birds, R, Bayesian Inference]
+categories: [Syntopy, Simulated Data, R, Bayesian Inference]
 format: html
 editor: visual
 bibliography: references.bib
@@ -88,7 +88,7 @@ I want to simulate data that resembles the BBS study design (\~40 km-long routes
 
 2\) stop scale (looking at syntopy within transects).
 
-For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn` library, and for the modelling, we will use libraries `rethinking` and `rstan`. For data wrangling we will use library `dplyr`.
+For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn`, and for the modelling, we will use libraries `rethinking` and `rstan`. For data wrangling we will use library `dplyr`.
 
 ```{r}
 #| output: false

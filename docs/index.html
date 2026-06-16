@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Matěj Tvarůžka">
-<meta name="dcterms.date" content="2026-06-15">
+<meta name="dcterms.date" content="2026-06-16">
 
 <title>Bayesian Analysis of Syntopy – Bayesian Assignment</title>
 <style>
@@ -393,8 +393,7 @@ window.Quarto = {
 <p class="subtitle lead">Assignment for Bayesian Statistics Course</p>
   <div class="quarto-categories">
     <div class="quarto-category">Syntopy</div>
-    <div class="quarto-category">Spatial Data</div>
-    <div class="quarto-category">Birds</div>
+    <div class="quarto-category">Simulated Data</div>
     <div class="quarto-category">R</div>
     <div class="quarto-category">Bayesian Inference</div>
   </div>
@@ -414,7 +413,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 15, 2026</p>
+      <p class="date">June 16, 2026</p>
     </div>
   </div>
   
@@ -504,7 +503,7 @@ window.Quarto = {
 <p>I want to simulate data that resembles the BBS study design (~40 km-long routes, each with 50 stops). Therefore, I need to create two data sets:</p>
 <p>1) route scale (looking at syntopy across transects within the range overlap)</p>
 <p>2) stop scale (looking at syntopy within transects).</p>
-<p>For Fisher’s non-central hypergeometric distribution we can use the library <code>BiasedUrn</code> library, and for the modelling, we will use libraries <code>rethinking</code> and <code>rstan</code>. For data wrangling we will use library <code>dplyr</code>.</p>
+<p>For Fisher’s non-central hypergeometric distribution we can use the library <code>BiasedUrn</code>, and for the modelling, we will use libraries <code>rethinking</code> and <code>rstan</code>. For data wrangling we will use library <code>dplyr</code>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(BiasedUrn)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rethinking)</span>
