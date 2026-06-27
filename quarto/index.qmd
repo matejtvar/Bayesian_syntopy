@@ -13,7 +13,7 @@ bibliography: references.bib
 
 Following the framework of @remes2023, this assignment simulates and analyses local co-occurrence (syntopy) among sister species of birds. In evolutionary ecology, syntopy is the final stage of the speciation cycle, during which two sister species meet at the same sites within their range overlap. This process leads to build-up of local biodiversity over time and is driven by niche conservatism, ecological specialisation and energetic constrains [@remes2025].
 
-In this work, I model the co-occurrence affinity at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales (routes and stops) using [BBS (Breeding Bird Survey)](https://www.pwrc.usgs.gov/bbs/) data for passerines and [eBird Status & Trends](https://science.ebird.org/en/status-and-trends) range maps. Therefore, I decided to simulate data to match the structure of the BBS data to understand their structure and modelling options better.
+In this work, I model the co-occurrence affinity at local sites as a function of ecological and spatial predictors. This idea is connected to the topic of my master’s thesis, in which I model syntopy at two spatial scales using [BBS (Breeding Bird Survey)](https://www.pwrc.usgs.gov/bbs/) data for passerines and [eBird Status & Trends](https://science.ebird.org/en/status-and-trends) range maps. Therefore, I decided to simulate data to match the design of the BBS data to understand their structure and modelling options better.
 
 ::: callout-note
 ## Assignment Goals
@@ -30,7 +30,7 @@ To measure syntopy accurately, we need to consider only sites within the range o
 3.  Species B is present,
 4.  Both species are missing at the site.
 
-If we want to model this problem using Bayesian methods, than the most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement, which reflects the true nature of the problem, given the limited number of pairs. We can follow the Bayesian approach in @newbury2025 measuring the degree of species co-occurrence with the log-odds ratio (for details see box 1).
+If we want to model this problem using Bayesian methods, than the most accurate probability distribution for our problem is Fisher’s non-central hypergeometric distribution, because the sampling is carried out without replacement, which reflects the true nature of the problem, given the limited number of pairs. We can follow the Bayesian approach in @newbury2025 measuring the degree of species co-occurrence with the log-odds ratio (for details see **box 1**).
 
 ::: {.callout-note collapse="true"}
 ## Box 1: Bayesian Log Odds Ratio
@@ -74,21 +74,29 @@ To satisfy the assignment's complexity requirements, I define **5 true parameter
 
 - $\beta_{0} = 0.5$ (Baseline log-odds of co-occurrence; slight facilitation)
 
-- $\beta_{res.div} = -0.7$ (Resource use divergence: greater divergence increases syntopy)
+- $\beta_{res.div} = 0.7$ (Resource use divergence: greater divergence increases syntopy)
 
-- $\beta_{hab.pref} = 0.6$ (Difference in micro-habitat and environmental preference decreases syntopy)
+- $\beta_{hab.pref} = -0.6$ (Difference in micro-habitat and environmental preference decreases syntopy)
 
 - $\beta_{prod} = 0.3$ (Environmental productivity (e.g., NDVI): richer environments facilitate synotopy)
 
 - $\beta_{sympatry} = 0.8$ (Spatial overlap: regional overlap strongly increases syntopy)
 
-I want to simulate data that resembles the BBS study design (\~40 km-long routes, each with 50 stops). Therefore, I need to create two data sets:
+I want to simulate data that resembles the BBS study design (for details see **box 2**). Therefore, I need to create two data sets:
 
 1\) route scale (looking at syntopy across transects within the range overlap)
 
 2\) stop scale (looking at syntopy within transects).
 
-For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn`, and for the modelling, we will use libraries `rethinking` and `rstan`. For data wrangling we will use library `dplyr`.
+::: {.callout-note collapse="true"}
+## Box 2: BBS Design and Syntopy Scales
+
+The BBS is a long-term, large-scale, international avian monitoring program initiated in 1966 to track the status and trends of North American bird populations. Volunteers count birds on \~40 km long routes, each with 50 stops. The stops are about 800 meters apart, and birds are counted for 3 minutes within a 400-meter radius at each stop. This approach allows us to compare syntopy at both the stop-scale and the route-scale, which is illustrated below.
+
+![](images/clipboard-443157424.png)
+:::
+
+For Fisher's non-central hypergeometric distribution we can use the library `BiasedUrn`, and for the modelling, we will use libraries `rethinking` and `rstan`. For data wrangling we will use library `dplyr`. For more advanced visualisations we will use libraries `ggplot2` and `bayesplot`.
 
 ```{r}
 #| output: false
@@ -96,12 +104,16 @@ library(BiasedUrn)
 library(rethinking)
 library(rstan)
 library(dplyr)
+library(ggplot2)
+library(bayesplot)
 set.seed(1)
 ```
 
 ## Route Scale
 
-For the routes, I choose a negative binomial distribution because it is integer-valued and has a long right tail.
+For the routes, I choose a negative binomial distribution because it is integer-valued and has a long right tail. I reflected on the situation in which most species pairs have relatively few routes that could be counted. This is because they mostly do not overlap completely (remember that we take only routes within the range overlap), and also because one or both species should be rather rare rather than common (given the general species-abundance distribution).
+
+For the occupancy-frequency distribution, I decided to use the beta-binomial distribution, which results in an unimodal distribution. However, I acknowledged that the usual shape of the occupancy-frequency distribution is rather biomodal, but the unimodal is also a feasible option [@mcgeoch2002].
 
 ```{r}
 #| label: Route-Scale Data Simulation
@@ -110,7 +122,7 @@ route_occupancy <- function(num_pairs){
   # simulates the occupancy of species across N routes
   
   # N of routes
-  N <-  rnbinom(n = num_pairs, mu = num_pairs, size = 2)
+  N <-  rnbinom(n = num_pairs, mu = 100, size = 2)
   # Probability distribution for species occupancy
   prob_m1 <- rbeta(num_pairs, shape1 = 1, shape2 = 2)
   prob_m2 <- rbeta(num_pairs, shape1 = 1, shape2 = 2)
@@ -121,7 +133,7 @@ route_occupancy <- function(num_pairs){
 }
 route_oc <- route_occupancy(num_pairs = num_pairs)
 
-hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="seagreen")
+hist(route_oc$N, breaks = 12, main="N Sites Distribution", xlab="Number of sites for sister pair", col="darkseagreen4")
 ```
 
 Some species pairs have a very large number of sampled sites, while others have just a few within the sympatric range. We can check the parameters of the distribution:
@@ -133,16 +145,8 @@ summary(route_oc$N)
 We can also check the occupancy distribution of the first species set in the pairs:
 
 ```{r}
-hist(route_oc$m1, breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="darkgrey")
+hist(route_oc$m1, breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="brown3")
 ```
-
-This plot resembles a species abundance distribution, so if we take the logarithm of it, it should be close to a normal distribution.
-
-```{r}
-hist(log(route_oc$m1), breaks = 12, main="Species Occupancy Sample", xlab="Number of occupied routes", col="darkgrey")
-```
-
-It is exactly like that!
 
 Let us continue with parameter generation. First, I will generate three already standardised variables using a normal distribution.
 
@@ -195,7 +199,7 @@ alpha <- exp(log_alpha) # Odds Ratio
 summary(alpha)
 ```
 
-With this settled, we calculate the linear predictor for each pair using the `BiasedUrn` library.
+With this settled, we calculate the linear predictor for each pair using the `BiasedUrn` library. We will use `rFNCHypergeo()` function, which uses a slightly different parametrisation of Fisher's non-central hypergeometric distribution (from the one we will use for modelling), where $m_1$ is the number of sites with the presence of species A, $m_2$ is the number of sites with the absence of species B and $n$ is the total number of sites with the presence of species B.
 
 ```{r}
 #| label: Simulation of Co-occurrence
@@ -247,19 +251,19 @@ route_data$log_OR <- log_alpha
 route_data[route_data$m1 == 0 & route_data$m2 == 0,]
 ```
 
-::: {.callout-important collapse="false"}
+::: callout-important
 There are 2 routes with zero occupancy, so-called double zeros. Double zeros could mean two things. Either both species are truly absent at the route (true negatives), or they were not detected during the survey (false negatives). Given that the route is within their range zone and there were 50 points where at least one of the species could have been detected, it should be more likely that they were not there if both of the species are not extremly rare or difficult to detect. This problem will likely increase on stop-level scale, because an individual stops are the basic observational unit, so maybe it will be reasonable to use occupancy models to estimate the probability of false negatives.
 :::
 
 ## Stop Scale
 
-The next step is to simulate stop-scale data from the route data we already have. I choose to filter only pairs with **k \>= 1**, because there is no reason to calculate syntopy on transects where there is 0 possibility of co-occurrence.
+The next step is to simulate stop-scale data from the route data we already have. I choose to filter only pairs with **k \>= 1**, because there is no reason to calculate syntopy on transects where there is 0 possibility of co-occurrence. To maintain the spatial hierarchy between route scale and stop scale, I decided to calculate the realized regional occupancy rates from already generated data and use them as the $\mu$ in beta distribution (with $\theta = 5$) to generate local point occupancy probabilities, which simulate the random effect for each route (we can assume, that there will be some spatial autocorrelation for the stops belonging to the same route; e.g. similar degree of habitat heterogenity).
 
 ```{r}
 # Select only rows where k >= 1
 valid_route_data <- route_data[route_data$k >= 1, ]
 
-# Initialize empty list and counter for fast execution
+# Initialize empty list and counter
 datalist <- list()
 counter <- 1
 
@@ -334,7 +338,7 @@ We have prepared our data and can now run the models using the `ulam()` function
 
 1.  Wrap up the data into a list so that `ulam()` can read it.
 
-2.  Import the separate *stan* file for likelihood function (see box 2).
+2.  Import the separate *stan* file for likelihood function (see **box 3**).
 
 3.  Set up the model formula in `ulam()`.
 
@@ -343,7 +347,7 @@ We have prepared our data and can now run the models using the `ulam()` function
 5.  Run the model using `stan()` function from `rstan` package.
 
 ::: {.callout-tip collapse="true"}
-## Box 2: Likelihood Function
+## Box 3: Likelihood Function
 
 The mathematical engine of this analysis is the custom **Fisher's Non-Central Hypergeometric Log Probability Mass Function (`fisher_hyper_lpmf`)**. Unlike a standard hypergeometric distribution, which assumes species are sorted completely at random, this distribution accounts for co-occurrence affinity via an odds-ratio parameter.
 
@@ -496,7 +500,7 @@ The Stop Scale model evaluates fine-scale species co-occurrence (syntopy) at loc
 
 $$\text{log}(\alpha_i) = \beta_{0} + \beta_{res.div} \cdot X_{1,i} + \beta_{hab.pref} \cdot X_{2,i} + \beta_{prod} \cdot X_{3,i} + \beta_{sympatry} \cdot X_{4,i} + (z_{\text{route}[i]} \times \sigma_{\text{route}})$$
 
-Presuming, that the variation among routes is highly clustered close to zero, we need to specify two adaptive priors to eliminate the geometric restrictions of "Neal's Funnel" near zero variance during Hamiltonian Monte Carlo sampling. The group-level deviations are mathematically decoupled into a standardized multiplier vector ($z_{\text{route}}$) and a global variance scaling parameter ($\sigma_{\text{route}}$):
+Presuming, that the variation among routes is highly clustered close to zero, we need to specify two adaptive priors to eliminate the geometric restrictions of "[Neal's Funnel](https://mc-stan.org/docs/2_18/stan-users-guide/reparameterization-section.html#)" near zero variance during Hamiltonian Monte Carlo sampling (see **box 4**). The group-level deviations are mathematically decoupled into a standardized multiplier vector ($z_{\text{route}}$) and a global variance scaling parameter ($\sigma_{\text{route}}$):
 
 $$z_{\text{route}[i]} \sim \text{Normal}(0, 1)$$
 
@@ -564,19 +568,78 @@ out_stops <- stan(
 )
 ```
 
+::: {.callout-tip collapse="true"}
+## Box 4: Non-centered Parameterization
+
+Hierarchical models with group-level random effects often suffer from severe geometric pathologies during Hamiltonian Monte Carlo sampling, a phenomenon known as Neal's Funnel. This issue arises when data provide weak information about group-level variance ($\sigma_{\text{route}}$), forcing the sampler to explore regions where the parameter space drastically constricts near zero.
+
+To evaluate whether our choice of model architecture was necessary, we can visually compare the geometry *Stan* had to explore before and after the non-centered transformation. We will use for this libraries `ggplot2` and `bayesplot`.
+
+```{r}
+# Extract posterior samples
+posterior_samples <- as.data.frame(out_stops)
+
+# Extract the original effect for selected route
+posterior_samples$alpha_route_1 <- posterior_samples$`z_route[1]` * posterior_samples$sigma_route
+
+# Visual check of Neal's Funnel
+ggplot(posterior_samples, aes(x = alpha_route_1, y = sigma_route)) +
+  geom_hex(bins = 50) + 
+  scale_fill_viridis_c(option = "plasma") +
+  labs(
+    title = "Parameters Check for Neal's Funnel",
+    x = "Route effect (alpha_route = z_route * sigma_route)",
+    y = "Variability among routes (sigma_route)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Visual check of the effect of non-centered parametrization
+ggplot(posterior_samples, aes(x = `z_route[1]`, y = sigma_route)) +
+  geom_hex(bins = 50) + 
+  scale_fill_viridis_c(option = "plasma") +
+  labs(
+    title = "Effect of Non-centered Parametrization (Stop-Scale Model)",
+    x = "Standardised route effect (z_route[1])",
+    y = "Variability among routes (sigma_route)"
+  ) +
+  theme_minimal()
+```
+
+We can see, that the non-centered parameterization was definitely the right choice in this case.
+:::
+
 First, we check the convergence with `traceplot()` for the main parameters.
 
 ```{r}
 traceplot(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
 ```
 
-Second, we can take a look at the main parameter estimates.
+The convergence for sigma_route looks a bit suspicious. Let us check the main parameter estimates.
 
 ```{r}
 print(precis(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route")))
 ```
 
-The true baseline syntopy is estimated much better with the stop scale model. Other parameters are were also estimated with increased precision. The variance between routes is negligible, indicating that the adaptive prior successfully shrunk localized deviations back to the global environmental baseline.
+The stop-scale model estimated the fixed effects with high precision, yielding well-mixed chains ($\hat{R} < 1.00$ and high $n_{eff}$ for all main predictors). The variance between routes is negligible, indicating that the adaptive prior successfully shrunk localized deviations back to the global environmental baseline (see box 5 for details).
+
+::: {.callout-tip collapse="true"}
+## Box 5: Local Route Effect
+
+```{r}
+#| message: false
+#| warning: false
+color_scheme_set("green")
+mcmc_hist(out_stops, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route"))
+```
+
+The estimated global standard deviation between routes ($\sigma_{route}$) had a posterior mean of $0.16$ ($89\%$ CI: $[0.02, 0.32]$). This local route effect was created earlier using beta distribution ($\theta = 5$) for local point occupancy probabilities with the pair's regional rates as $\mu$.
+
+Quantitatively, this indicates that the route-level random effect accounts for minor residual variation. A $\sigma_{route}$ of $0.16$ translates to a subtle $\approx 17\%$ shift ($e^{0.16}$) in the co-occurrence odds ratio between typical routes. In contrast, fixed environmental and macro-ecological predictors—such as sympatry ($b_{sym} = 0.78$, corresponding to a $>118\%$ increase in odds) and habitat preference ($b_{hab} = 0.54$) — exerted a substantially stronger influence on fine-scale syntopy.
+
+While the slightly lower effective sample size ($n_{eff} \approx 700$) and marginal $\hat{R} = 1.01$ for $\sigma_{route}$ suggest that the data are relatively uninformative about the exact scale of route-level variance, the posterior successfully concentrates near zero. This indicates that after controlling for key environmental covariates, macro-scale geographic grouping introduces negligible residual spatial clustering.
+:::
 
 We now compare model estimations of syntopy (log-OR) with the true values we stated for the simulation of the data.
 
@@ -690,7 +753,7 @@ out_stops_sample <- stan(
 print(precis(out_stops_sample, pars = c("b0", "b_res", "b_hab", "b_sym", "b_prod", "sigma_route")))
 ```
 
-We can see that the model is more uncertain in the fixed parameters which are outside the credible interval for $\beta_{res.div}$, $\beta_{hab.pref}$ and $\beta_{sympatry}$. Also variance among routes increased, which is likely the effect of higher prior sensitivity due to smaller sample size.
+We can see that the model is more certain and $\mu$ for $\beta_{sympatry}$ is estimated precisely.
 
 ```{r}
 true_values <- c(0.5, -0.7, 0.6, 0.8, 0.3)
@@ -708,7 +771,7 @@ legend("topright", legend = "True Parameter", col = "deepskyblue3", pch = 18, bt
 ```
 :::
 
-::: {.callout-note collapse="false"}
+::: callout-note
 ## Coding Workflow
 
 I used **Gemini 3.5** to enhance plots and help with some of the stuff in this assignment, like writing the likelihood function or function for stop scale data generation. I always reviewed the AI output and tried to apply the approaches learned in the course as much as possible.
@@ -718,7 +781,7 @@ I used **Gemini 3.5** to enhance plots and help with some of the stuff in this a
 
 This assignment was about simulating syntopy dataset using generative parameters tuned to reflect established ecological thresholds and known structure design of BBS data. I simulated data for route and stop scale, assuming there is no difference in the true values of parameters between scales. Than I tried to estimate back the specifed true values using Bayesian model for each scale separately.
 
-Both models estimated the true values for $\text{N} = 100$ with sufficient precision, although the route-scale model slightly underestimated the baseline syntopy ($\beta_{0}$). The stop-scale model estimated syntopy much more accurately and showed that the variance among routes is very small, suggesting minor sampling noise. I also checked the effect of a smaller sample size ($\text{N} = 30$) on the parameter estimates. It had a profound effect on the precision of the estimates, especially for values of $\beta_{res.div}$, $\beta_{hab.pref}$ and $\beta_{sympatry}$, which fell outside the credible interval.
+Both models estimated the true values for $\text{N} = 100$ with sufficient precision, although the route-scale model slightly underestimated the baseline syntopy (true $\beta_{0}=0.5$; route-scale model: $\mu = 0.36$, $\sigma = 0.07$ ($89\%$ CI: $[0.24, 0.48]$). The stop-scale model estimated syntopy much more accurately ($\mu = 0.45$, $\sigma = 0.04$ ($89\%$ CI: $[0.40, 0.51]$) and showed that the variance among routes is very small, suggesting minor sampling noise. I also checked the effect of a smaller sample size ($\text{N} = 30$) on the parameter estimates, for which $\beta_{sympatry}$ was also estimated with a sufficient precision ($\mu = 0.49$, $\sigma = 0.06$ ($89\%$ CI: $[0.39, 0.59]$).
 
 # References
 
